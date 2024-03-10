@@ -31,8 +31,10 @@ public class Spider {
     public static void main(String[] args){
         try {
             Spider spider = new Spider("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", 30);
-
-
+            Vector<String> links = spider.extractLinks();
+            for(int i = 0; i < links.size(); i++){
+                System.out.println(links.get(i));
+            }
         }
         catch (ParseException e) {
             e.printStackTrace();
