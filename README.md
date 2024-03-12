@@ -3,3 +3,9 @@
 Compile the code: in the `java` directory, do `javac -cp htmlparser.jar:. Project/Spider.java`
 
 Execute the executable: in the `java` directory, do `java -cp htmlparser.jar:. Project.Spider`  
+
+For Window(Using PowerShell):
+Compile the code: in the `java` directory, do `javac -cp htmlparser.jar Project/Spider.java`
+If there is still error, try to change `htmlparser.jar` to using whole path starting from C:
+
+Execute the executable: in the `java` directory, do `java -cp ".;htmlparser.jar" Project.Spider`
