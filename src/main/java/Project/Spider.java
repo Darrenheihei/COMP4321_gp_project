@@ -5,6 +5,8 @@ import org.htmlparser.beans.StringBean;
 import org.htmlparser.beans.LinkBean;
 import java.net.URL;
 import java.text.ParseException;
+import jdbm.RecordManager;
+import jdbm.RecordManagerFactory;
 
 public class Spider {
     private String url;
@@ -40,9 +42,9 @@ public class Spider {
             // fetch all links in the url
             Vector<String> crawled_links = extractSinglePageLinks(vec_links.get(cur_index));
             // break out of the loop if there less pages that can be crawled than num_pages
-            if (...){
-                break;
-            }
+//            if (...){
+//                break;
+//            }
             // add the result to vec_links
             vec_links.addAll(crawled_links);
             // continue BFS
@@ -65,6 +67,20 @@ public class Spider {
         }
         catch (ParseException e) {
             e.printStackTrace();
+        }
+
+        try
+        {
+            RecordManager recman;
+            recman = RecordManagerFactory.createRecordManager("projectRM");
+
+            recman.commit();
+
+            recman.close();
+        }
+        catch(java.io.IOException ex)
+        {
+            System.err.println(ex.toString());
         }
     }
 }
