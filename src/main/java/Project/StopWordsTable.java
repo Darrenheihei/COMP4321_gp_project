@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashSet;
+import java.io.FileNotFoundException;
 
 
 /**
@@ -13,16 +14,16 @@ import java.util.HashSet;
  */
 public class StopWordsTable {
     private static StopWordsTable instance = new StopWordsTable();
-     private HashSet<String> hashset = new HashSet<>();
+    private HashSet<String> hashset = new HashSet<>();
     public StopWordsTable()
     {
         BufferedReader br = null;
         try
         {
-            FileReader fd = new FileReader("C:\\Users\\chuny\\IdeaProjects\\comp4321\\src\\main\\java\\stopwords.txt");
+            FileReader fd = new FileReader("Project/stopwords.txt");
             br = new BufferedReader(fd);
         }
-        catch (IOException e)
+        catch (FileNotFoundException e)
         {
             e.printStackTrace();
         }
@@ -49,14 +50,7 @@ public class StopWordsTable {
      */
     public boolean isStopWords(String str)
     {
-        if(hashset.contains(str))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        return hashset.contains(str);
     }
     public static StopWordsTable getInstance()
     {

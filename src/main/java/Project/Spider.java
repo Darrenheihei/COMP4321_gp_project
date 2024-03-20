@@ -39,6 +39,10 @@ public class Spider {
         while (vec_links.size() < num_pages){
             // fetch all links in the url
             Vector<String> crawled_links = extractSinglePageLinks(vec_links.get(cur_index));
+            // break out of the loop if there less pages that can be crawled than num_pages
+            if (...){
+                break;
+            }
             // add the result to vec_links
             vec_links.addAll(crawled_links);
             // continue BFS
