@@ -7,15 +7,36 @@ import java.net.URL;
 import java.text.ParseException;
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
+import jdbm.htree.HTree;
+import java.util.UUID;
 
 public class Spider {
     private String url;
     private int num_pages;
-    private
 
-    Spider(String _url, int _num_pages){
+    private RecordManager recman;
+    private HTree convtable_urlToId; // conversion table: URL to ID
+    private HTree convtable_idToUrl; // conversion table: ID to URL
+    private Spider(String _url, int _num_pages){
         url = _url;
         num_pages = _num_pages;
+
+        try {
+            // create record manager
+            recman = RecordManagerFactory.createRecordManager("projectRM");
+
+            // get record id of the object named "urlToId"
+            convtable_urlToId = HashTableRetriever.getHashTable("urlToId");
+            convtable_urlToId.put("key5", "context 5");
+            System.out.println( convtable_urlToId.get("key5"));
+            recman.commit();
+
+            // get record id of the object named "idToUrl"
+            convtable_idToUrl = HashTableRetriever.getHashTable("idToUrl");
+        }
+        catch(java.io.IOException e){
+            e.printStackTrace();
+        }
     }
 
     public Vector<String> extractSinglePageLinks(String link) throws ParseException{
@@ -69,18 +90,5 @@ public class Spider {
             e.printStackTrace();
         }
 
-        try
-        {
-            RecordManager recman;
-            recman = RecordManagerFactory.createRecordManager("projectRM");
-
-            recman.commit();
-
-            recman.close();
-        }
-        catch(java.io.IOException ex)
-        {
-            System.err.println(ex.toString());
-        }
     }
 }
