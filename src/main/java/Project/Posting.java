@@ -53,7 +53,7 @@ public class Posting {
         {
             for(String s: hm.keySet())
             {
-                hashtable.put(s,Integer.valueOf(hm.get(s)));
+                hashtable.put(s,String.valueOf(hm.get(s)));
             }
         }
         catch (IOException e) {
