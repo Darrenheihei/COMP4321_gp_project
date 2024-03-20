@@ -1,5 +1,6 @@
 package Project;
 
+import java.io.IOException;
 import java.util.Vector;
 import org.htmlparser.beans.StringBean;
 import org.htmlparser.beans.LinkBean;
@@ -8,6 +9,7 @@ import java.text.ParseException;
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
 import jdbm.htree.HTree;
+import jdbm.helper.FastIterator;
 import java.util.UUID;
 
 public class Spider {
@@ -17,7 +19,8 @@ public class Spider {
     private RecordManager recman;
     private HTree convtable_urlToId; // conversion table: URL to ID
     private HTree convtable_idToUrl; // conversion table: ID to URL
-    private Spider(String _url, int _num_pages){
+
+    public Spider(String _url, int _num_pages){
         url = _url;
         num_pages = _num_pages;
 
@@ -26,13 +29,22 @@ public class Spider {
             recman = RecordManagerFactory.createRecordManager("projectRM");
 
             // get record id of the object named "urlToId"
-            convtable_urlToId = HashTableRetriever.getHashTable("urlToId");
-            convtable_urlToId.put("key5", "context 5");
-            System.out.println( convtable_urlToId.get("key5"));
-            recman.commit();
+            long recid = recman.getNamedObject("urlToId");
+            if (recid != 0){
+                convtable_urlToId = HTree.load(recman, recid);
+            } else {
+                convtable_urlToId = HTree.createInstance(recman);
+                recman.setNamedObject( "urlToId", convtable_urlToId.getRecid() );
+            }
 
             // get record id of the object named "idToUrl"
-            convtable_idToUrl = HashTableRetriever.getHashTable("idToUrl");
+            recid = recman.getNamedObject("idToUrl");
+            if (recid != 0){
+                convtable_idToUrl = HTree.load(recman, recid);
+            } else {
+                convtable_idToUrl = HTree.createInstance(recman);
+                recman.setNamedObject( "idToUrl", convtable_idToUrl.getRecid() );
+            }
         }
         catch(java.io.IOException e){
             e.printStackTrace();
@@ -46,8 +58,20 @@ public class Spider {
         URL[] links = lb.getLinks();
 
         Vector<String> vec_links = new Vector<>();
-        for (int i = 0; i < links.length; i++){
-            vec_links.add(links[i].toString());
+        try {
+            for (int i = 0; i < links.length; i++) {
+                vec_links.add(links[i].toString());
+                if (convtable_urlToId.get(links[i].toString()) == null) { // crawled an entirely new link
+                    // add the new link to the conversion tables url <=> id
+                    String newId = UUID.randomUUID().toString();
+                    convtable_urlToId.put(links[i].toString(), newId);
+                    convtable_idToUrl.put(newId, links[i].toString());
+                }
+            }
+            recman.commit();
+        }
+        catch (IOException e){
+            e.printStackTrace();
         }
         return vec_links;
     }
@@ -80,14 +104,40 @@ public class Spider {
         try {
             Spider spider = new Spider("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", 30);
             Vector<String> links = spider.extractLinks();
-            System.out.println("Number of links: " + links.size());
-            for(int i = 0; i < links.size(); i++){
-                System.out.println(links.get(i));
+//            System.out.println("Number of links: " + links.size());
+//            for(int i = 0; i < links.size(); i++){
+//                System.out.println(links.get(i));
+//            }
+            FastIterator iter1 = spider.convtable_urlToId.keys();
+            FastIterator iter2 = spider.convtable_idToUrl.keys();
+            String key;
+
+            // clear the hash table
+//            spider.convtable_urlToId.remove("key3");
+//            spider.recman.commit();
+
+
+//            // print out the hash table
+            System.out.println("URL -> ID:");
+            int i = 0;
+            while( (key = (String)iter1.next())!=null)
+            {
+                System.out.println(key + " : " + spider.convtable_urlToId.get(key));
             }
+//
+            System.out.println("ID -> URL:");
+            while( (key = (String)iter2.next())!=null)
+            {
+                System.out.println(key + " : " + spider.convtable_idToUrl.get(key));
+            }
+
 
         }
         catch (ParseException e) {
             e.printStackTrace();
+        }
+        catch (IOException ex) {
+            ex.printStackTrace();
         }
 
     }

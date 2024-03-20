@@ -19,6 +19,7 @@ public class HashTableRetriever {
         }
         catch (java.io.IOException e){
             e.printStackTrace();
+            System.out.println("Error!");
             return null;
         }
     }
