@@ -1,5 +1,11 @@
 package Project;
 
+import jdbm.RecordManager;
+import jdbm.RecordManagerFactory;
+import jdbm.helper.FastIterator;
+import jdbm.htree.HTree;
+
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -8,10 +14,20 @@ import java.util.Vector;
  */
 public class Posting {
 
-    private HashMap<String,Integer> hashMap;
-    public Posting()
+    private RecordManager recman;
+    private HTree hashtable;
+    public Posting(String recordmanager, String objectname) throws IOException
     {
-        hashMap = new HashMap<>();
+        recman = RecordManagerFactory.createRecordManager(recordmanager);
+        long recid = recman.getNamedObject(objectname);
+        if (recid != 0)
+            hashtable = HTree.load(recman, recid);
+        else
+        {
+            hashtable = HTree.createInstance(recman);
+            recman.setNamedObject( objectname, hashtable.getRecid() );
+        }
+
     }
 
     /**
@@ -20,17 +36,41 @@ public class Posting {
      */
     void map(Vector<String> v)
     {
+
+        HashMap<String,Integer> hm = new HashMap<>();
         for(String str:v)
         {
-            if(hashMap.get(str)==null)
+            if(hm.get(str)==null)
             {
-                hashMap.put(str,1);
+                hm.put(str,1);
             }
             else
             {
-                hashMap.replace(str,hashMap.get(str)+1);
+                hm.put(str,hm.get(str)+1);
             }
         }
+        try
+        {
+            for(String s: hm.keySet())
+            {
+                hashtable.put(s,String.valueOf(hm.get(s)));
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void printAll() throws IOException
+    {
+        // Print all the data in the hashtable
+        FastIterator it = hashtable.keys();
+        String key;
+        while((key = (String)it.next())!=null)
+        {
+            System.out.println(key  + hashtable.get(key));
+        }
+
     }
     public static void main(String[] args)
     {
@@ -39,11 +79,16 @@ public class Posting {
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
 
-        Posting p = new Posting();
-        p.map(v);
-        for(String str:p.hashMap.keySet())
+        Posting p;
+        try
         {
-            System.out.println(str + ": "+ p.hashMap.get(str));
+            p = new Posting("projectRM","keyword-frequency");
+            p.map(v);
+            p.printAll();
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
         }
     }
 }
