@@ -2,14 +2,20 @@ package Project;
 
 import java.io.IOException;
 import java.util.Vector;
+
+import org.htmlparser.NodeFilter;
+import org.htmlparser.Tag;
 import org.htmlparser.beans.StringBean;
 import org.htmlparser.beans.LinkBean;
+import org.htmlparser.beans.FilterBean;
 import java.net.URL;
 import java.text.ParseException;
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
 import jdbm.htree.HTree;
 import jdbm.helper.FastIterator;
+import org.htmlparser.filters.TagNameFilter;
+
 import java.util.UUID;
 
 public class Spider {
@@ -61,14 +67,15 @@ public class Spider {
         try {
             for (int i = 0; i < links.length; i++) {
                 vec_links.add(links[i].toString());
-                if (convtable_urlToId.get(links[i].toString()) == null) { // crawled an entirely new link
-                    // add the new link to the conversion tables url <=> id
+                // if crawled an entirely new link, add it to the conversion tables url <=> id
+                if (convtable_urlToId.get(links[i].toString()) == null) {
                     String newId = UUID.randomUUID().toString();
                     convtable_urlToId.put(links[i].toString(), newId);
                     convtable_idToUrl.put(newId, links[i].toString());
                 }
             }
             recman.commit();
+            System.out.println(count);
         }
         catch (IOException e){
             e.printStackTrace();
@@ -86,10 +93,7 @@ public class Spider {
         while (vec_links.size() < num_pages){
             // fetch all links in the url
             Vector<String> crawled_links = extractSinglePageLinks(vec_links.get(cur_index));
-            // break out of the loop if there less pages that can be crawled than num_pages
-//            if (...){
-//                break;
-//            }
+
             // add the result to vec_links
             vec_links.addAll(crawled_links);
             // continue BFS
@@ -118,18 +122,18 @@ public class Spider {
 
 
 //            // print out the hash table
-            System.out.println("URL -> ID:");
-            int i = 0;
-            while( (key = (String)iter1.next())!=null)
-            {
-                System.out.println(key + " : " + spider.convtable_urlToId.get(key));
-            }
+//            System.out.println("URL -> ID:");
+//            int i = 0;
+//            while( (key = (String)iter1.next())!=null)
+//            {
+//                System.out.println(key + " : " + spider.convtable_urlToId.get(key));
+//            }
 //
-            System.out.println("ID -> URL:");
-            while( (key = (String)iter2.next())!=null)
-            {
-                System.out.println(key + " : " + spider.convtable_idToUrl.get(key));
-            }
+//            System.out.println("ID -> URL:");
+//            while( (key = (String)iter2.next())!=null)
+//            {
+//                System.out.println(key + " : " + spider.convtable_idToUrl.get(key));
+//            }
 
 
         }
