@@ -50,9 +50,12 @@ public class Keyword2Id {
 
     public void addKeyword(String keyword) throws IOException
     {
-        String newId = UUID.randomUUID().toString();
-        convtable_keywordToId.put(keyword,newId);
-        convtable_idToKeyword.put(newId,keyword);
+        if(convtable_keywordToId.get(keyword)==null)
+        {
+            String newId = UUID.randomUUID().toString();
+            convtable_keywordToId.put(keyword,newId);
+            convtable_idToKeyword.put(newId,keyword);
+        }
     }
     public String getId(String keyword) throws IOException
     {
