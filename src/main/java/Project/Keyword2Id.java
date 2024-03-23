@@ -56,20 +56,27 @@ public class Keyword2Id {
             convtable_keywordToId.put(keyword,newId);
             convtable_idToKeyword.put(newId,keyword);
         }
+
     }
     public String getId(String keyword) throws IOException
     {
+
+        if(convtable_keywordToId.get(keyword) == null)
+        {
+            addKeyword(keyword);
+        }
         String id = convtable_keywordToId.get(keyword).toString();
-            if(id == null)
-            {
-                addKeyword(keyword);
-            }
         return id;
     }
 
     public String getKeyword(String id) throws IOException
     {
-        String keyword =  convtable_idToKeyword.get(id).toString();
+        String keyword = "";
+        if(convtable_idToKeyword.get(id)!= null)
+        {
+            keyword =  convtable_idToKeyword.get(id).toString();
+        }
+
         return keyword;
     }
 
@@ -79,7 +86,7 @@ public class Keyword2Id {
         if(id!=null)
         {
             convtable_keywordToId.remove(keyword);
-            convtable_idToKeyword.remove((id));
+            convtable_idToKeyword.remove(id);
         }
     }
 
