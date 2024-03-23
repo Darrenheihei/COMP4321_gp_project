@@ -25,17 +25,12 @@ public class Testing {
     public static void main(String[] args){
 //        try {
 //            Spider spider = new Spider("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", 30);
-            Queue<String> queue = new LinkedList<String>();
-            queue.offer("a");
-            queue.offer("b");
-            String[] arr = {"c", "d"};
-            for(String a:arr){
-                queue.offer(a);
-            }
-            String out = null;
-            while((out = queue.poll()) != null){
-                System.out.println(out);
-            }
+            Long a = 10l;
+            String b = a.toString();
+            System.out.println(b + 1);
+            Long c = Long.parseLong(b);
+            System.out.println(c + 1);
+
 
 
 //        }

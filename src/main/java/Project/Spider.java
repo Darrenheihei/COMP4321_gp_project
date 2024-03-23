@@ -27,11 +27,11 @@ public class Spider {
     private int num_pages;
 
     private RecordManager recman;
-    private HTree convtable_urlToId; // conversion table: URL to ID
-    private HTree convtable_idToUrl; // conversion table: ID to URL
-    private HTree hashtable_modificationDate; // key is urlID, value is time in millisecond
-    private HTree hashtable_parentURL; // key is child urlID, value is the parent urlID
-    private HTree hashtable_childURL; // key is parent urlID, value is all child urlID
+    private HTree convtable_urlToId; // conversion table: URL to ID, name: "urlToId"
+    private HTree convtable_idToUrl; // conversion table: ID to URL, name: "idToUrl"
+    private HTree hashtable_modDate; // key is urlID, value is time in millisecond, name: "modDate"
+    private HTree hashtable_parentURL; // key is child urlID, value is the parent urlID, name: "parentURL", value is null means no parent page
+    private HTree hashtable_childURL; // key is parent urlID, value is all child urlID, name: "childURL", value is null means no fetched child page
 
     public Spider(String url, int _num_pages){
         startUrl = url;
@@ -62,28 +62,28 @@ public class Spider {
             // get record id of the object named "modDate"
             recid = recman.getNamedObject("modDate");
             if (recid != 0){
-                convtable_idToUrl = HTree.load(recman, recid);
+                hashtable_modDate = HTree.load(recman, recid);
             } else {
-                convtable_idToUrl = HTree.createInstance(recman);
-                recman.setNamedObject( "modDate", convtable_idToUrl.getRecid() );
+                hashtable_modDate = HTree.createInstance(recman);
+                recman.setNamedObject( "modDate", hashtable_modDate.getRecid() );
             }
 
             // get record id of the object named "parentURL"
             recid = recman.getNamedObject("parentURL");
             if (recid != 0){
-                convtable_idToUrl = HTree.load(recman, recid);
+                hashtable_parentURL = HTree.load(recman, recid);
             } else {
-                convtable_idToUrl = HTree.createInstance(recman);
-                recman.setNamedObject( "parentURL", convtable_idToUrl.getRecid() );
+                hashtable_parentURL = HTree.createInstance(recman);
+                recman.setNamedObject( "parentURL", hashtable_parentURL.getRecid() );
             }
 
             // get record id of the object named "childURL"
             recid = recman.getNamedObject("childURL");
             if (recid != 0){
-                convtable_idToUrl = HTree.load(recman, recid);
+                hashtable_childURL = HTree.load(recman, recid);
             } else {
-                convtable_idToUrl = HTree.createInstance(recman);
-                recman.setNamedObject( "childURL", convtable_idToUrl.getRecid() );
+                hashtable_childURL = HTree.createInstance(recman);
+                recman.setNamedObject( "childURL", hashtable_childURL.getRecid() );
             }
         }
         catch(java.io.IOException e){
@@ -91,89 +91,159 @@ public class Spider {
         }
     }
 
-    public Vector<String> extractSinglePageLinks(String link) throws ParseException{
+    public Vector<String> extractSinglePageLinks(String link){
         LinkBean lb;
         lb = new LinkBean();
         lb.setURL(link);
         URL[] links = lb.getLinks();
 
         Vector<String> vec_links = new Vector<>();
-        try {
-            for (int i = 0; i < links.length; i++) {
-                vec_links.add(links[i].toString());
 
-                if (convtable_urlToId.get(links[i].toString()) == null) { // crawled an entirely new link
-                    // add it to the conversion tables url <=> id
-                    String newId = UUID.randomUUID().toString();
-                    convtable_urlToId.put(links[i].toString(), newId);
-                    convtable_idToUrl.put(newId, links[i].toString());
-                    // add the last modification date to hash table
-                    URL url = new URL(links[i].toString());
-                    URLConnection connection = url.openConnection();
-                    long lastModified = connection.getLastModified();
-                    hashtable_modificationDate.put(newId, Long.toString(lastModified));
-                } else {
+        for (URL url:links) {
+            vec_links.add(url.toString());
+        }
 
-                }
-            }
-            recman.commit();
-        }
-        catch (IOException e){
-            e.printStackTrace();
-        }
         return vec_links;
     }
 
     public Vector<String> extractLinks() throws ParseException{
         Vector<String> vec_links = new Vector<>(); // use this as the storage of all links
+        Vector<String> vec_links_id = new Vector<>(); // store the IDs of all the pages in vec_links
         Queue<String> link_queue = new LinkedList<String>(); // queue of the links to be extracted
-        // initialize vec_link and link_queue
-        vec_links.add(startUrl);
+        // initialize link_queue
         link_queue.offer(startUrl);
 
         // start fetching recursively using BFS
         try {
             String curLink = null;
             while (vec_links.size() < num_pages && ((curLink = link_queue.poll()) != null)) {
-                if (convtable_urlToId.get(curLink) == null) { // curLink is a new URL
-                    // fetch all links in the url
+                // add the link to vec_links
+                vec_links.add(curLink);
+
+                // get the last modification time
+                URL curUrl = new URL(curLink);
+                URLConnection connection = curUrl.openConnection();
+                long lastModified = connection.getLastModified();
+
+
+                // get the id of the current url
+                Object id = convtable_urlToId.get(curLink); // added toString() here because the IDE doesn't know the object being stored is string so it will display an error, which looks bad
+
+                // start to check different conditions
+                if (id == null) { // situation 1: curLink is a new URL, not yet stored in database
+                    // add current url to conversion tables url <=> id
+                    id = UUID.randomUUID().toString();
+                    convtable_urlToId.put(curLink, id);
+                    convtable_idToUrl.put(id, curLink);
+
+                    // add the last modification date to hash table
+                    hashtable_modDate.put(id, Long.toString(lastModified));
+
+                    // save all changes
+                    recman.commit();
+
+                    // TODO: update inverted index and forward index
+
+                    // fetch all links in the current url
                     Vector<String> crawled_links = extractSinglePageLinks(curLink);
 
-                    // add new URLs to vec_links and link_queue
+                    // add new URLs to link_queue
                     for(String url:crawled_links){
-                        if (convtable_urlToId.get(url) == null){ // it is a new URL
-                            vec_links.add(url);
+                        if (!vec_links.contains(url)){ // it is not in vec_link
                             link_queue.offer(url);
                         }
                     }
-                    vec_links.addAll(crawled_links);
+                } else if (lastModified > Long.parseLong(hashtable_modDate.get(id).toString())) { // situation 2: already in database, but modification time is later than the recorded time
+                    // update the last modification date
+                    hashtable_modDate.put(id, Long.toString(lastModified));
 
-                    // add the result to link_queue
-                    for(String link: crawled_links){
-                        link_queue.offer(link);
+                    // save all changes
+                    recman.commit();
+
+                    // TODO: update inverted index and forward index
+
+                    // fetch all links in the current url
+                    Vector<String> crawled_links = extractSinglePageLinks(curLink);
+
+                    // add new URLs to link_queue
+                    for (String url:crawled_links){
+                        if (!vec_links.contains(url)){ // it is not in vec_link
+                            link_queue.offer(url);
+                        }
                     }
                 }
+            }
+
+            // for child pages that are not included in vec_link,
+            // i.e. links in link_queue but not in vec_link,
+            // still provide them an url ID and add to the conversion tables url <=> id
+            while ((curLink = link_queue.poll()) != null){
+                // add current url to conversion tables url <=> id
+                Object id = UUID.randomUUID().toString();
+                convtable_urlToId.put(curLink, id);
+                convtable_idToUrl.put(id, curLink);
+            }
+
+            // update the childID and parentID hash tables
+            for (String parentUrl: vec_links){
+                Object parentId = convtable_urlToId.get(parentUrl);
+                String childIds = "";
+                Vector<String> childURLs = extractSinglePageLinks(parentUrl);
+
+                // get all the child IDs + update parentURL
+                for (String childUrl: childURLs){
+                    Object childId = convtable_urlToId.get(childUrl);
+                    childIds += childId + " ";
+
+                    // update parentURL
+                    hashtable_parentURL.put(childId, parentId);
+                }
+                // update childURL
+                hashtable_childURL.put(parentId, childIds);
+            }
+
+            // save all changes
+            recman.commit();
+
+            // get a vector of ID of fetched pages
+            for (String link:vec_links){
+                vec_links_id.add(convtable_urlToId.get(link).toString());
             }
         }
         catch (IOException e){
             e.printStackTrace();
         }
 
-        Vector<String> returned_links = new Vector<>(vec_links.subList(0, num_pages));
-        return returned_links;
+        return vec_links_id;
     }
 
     public static void main(String[] args){
         try {
             Spider spider = new Spider("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", 30);
             Vector<String> links = spider.extractLinks();
-//            System.out.println("Number of links: " + links.size());
-//            for(int i = 0; i < links.size(); i++){
-//                System.out.println(links.get(i));
-//            }
-            FastIterator iter1 = spider.convtable_urlToId.keys();
-            FastIterator iter2 = spider.convtable_idToUrl.keys();
-            String key;
+            System.out.println("Number of links: " + links.size());
+            for(int i = 0; i < links.size(); i++){
+                System.out.println(links.get(i));
+            }
+
+            System.out.println();
+            String parent = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm";
+            String parentId = spider.convtable_urlToId.get(parent).toString();
+            String[] childIds = spider.hashtable_childURL.get(parentId).toString().split(" ");
+            System.out.println(spider.convtable_idToUrl.get(spider.hashtable_parentURL.get(parentId)));
+            System.out.println();
+            for (String childId:childIds){
+                System.out.println(spider.convtable_idToUrl.get(childId));
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                Date date = new Date(Long.parseLong(spider.hashtable_modDate.get(childId).toString()));
+                String formattedDate = formatter.format(date);
+                System.out.println(formattedDate);
+                System.out.println(spider.convtable_idToUrl.get(spider.hashtable_parentURL.get(childId)));
+
+            }
+//            FastIterator iter1 = spider.convtable_urlToId.keys();
+//            FastIterator iter2 = spider.convtable_idToUrl.keys();
+//            String key;
 
             // clear the hash table
 //            spider.convtable_urlToId.remove("key3");
