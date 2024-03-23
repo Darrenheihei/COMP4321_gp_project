@@ -1,8 +1,8 @@
 (Only for the `Spider.java` part)
 
-Compile the code: in the `java` directory, do `javac -cp htmlparser.jar:. Project/Spider.java`
+Compile the code: in the `java` directory, do `javac -cp jdbm-1.0.jar:htmlparser.jar:. Project/Spider.java`
 
-Execute the executable: in the `java` directory, do `java -cp htmlparser.jar:. Project.Spider`  
+Execute the executable: in the `java` directory, do `java -cp jdbm-1.0.jar:htmlparser.jar:. Project.Spider`  
 
 For Window(Using PowerShell):
 Compile the code: in the `java` directory, do `javac -cp htmlparser.jar Project/Spider.java`
