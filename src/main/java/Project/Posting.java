@@ -75,7 +75,7 @@ public class Posting {
     public static void main(String[] args)
     {
         StringExtractor se = new StringExtractor("http://www.cs.ust.hk/~dlee/4321/");
-        Vector<String> v = se.getString(true);
+        Vector<String> v = se.getAllString(true);
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
 
