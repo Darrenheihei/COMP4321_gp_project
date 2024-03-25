@@ -2,6 +2,7 @@ package Project;
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
 import jdbm.htree.HTree;
+import org.htmlparser.beans.StringBean;
 
 import java.io.IOException;
 import java.net.URL;
@@ -28,6 +29,14 @@ public class PageSize {
             URL urll = new URL(url);
             URLConnection connection = urll.openConnection();
             int pageSize = connection.getContentLength();
+            if(pageSize == -1){
+                Vector<String> v = new Vector<>();
+                StringBean sb = new StringBean();
+                sb.setLinks(false);
+                sb.setURL(url);
+                String allString = sb.getStrings();
+                pageSize = allString.length();
+            }
             convtable_UrlIdToPageSize.put(urlId, pageSize);
             recman.commit();
         } catch (IOException e) {
