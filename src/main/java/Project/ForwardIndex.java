@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.util.Vector;
 
 public class ForwardIndex {
-    public RecordManager recman;
-    public HTree convtable_urlIdToKeywordId;
-    public HTree convtable_idToUrl;
+    private RecordManager recman;
+    private HTree convtable_urlIdToKeywordId;
+    private HTree convtable_idToUrl;
 
     public Keyword2Id k2i;
 

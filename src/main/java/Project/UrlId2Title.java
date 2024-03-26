@@ -8,8 +8,8 @@ import org.htmlparser.util.ParserException;
 import java.io.IOException;
 
 public class UrlId2Title {
-    public RecordManager recman;
-    public HTree convtable_urlIdtoTitle;
+    private RecordManager recman;
+    private HTree convtable_urlIdtoTitle;
 
 
     public UrlId2Title() throws IOException
