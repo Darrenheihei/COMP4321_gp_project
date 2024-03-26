@@ -1,6 +1,7 @@
 package Project;
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
+import jdbm.helper.FastIterator;
 import jdbm.htree.HTree;
 import org.htmlparser.beans.StringBean;
 
@@ -14,7 +15,7 @@ public class PageSize {
 
     public PageSize() throws IOException {
         recman = RecordManagerFactory.createRecordManager("projectRM");
-        long recid_urlId2KeywordId = recman.getNamedObject("invertedIndex");
+        long recid_urlId2KeywordId = recman.getNamedObject("pageSize");
         if (recid_urlId2KeywordId != 0) {
             convtable_UrlIdToPageSize = HTree.load(recman, recid_urlId2KeywordId);
         } else {
@@ -37,7 +38,7 @@ public class PageSize {
                 String allString = sb.getStrings();
                 pageSize = allString.length();
             }
-            convtable_UrlIdToPageSize.put(urlId, pageSize);
+                convtable_UrlIdToPageSize.put(urlId, pageSize);
             recman.commit();
         } catch (IOException e) {
             e.printStackTrace();
@@ -49,12 +50,39 @@ public class PageSize {
         return Integer.parseInt(convtable_UrlIdToPageSize.get(urlId).toString());
     }
 
+    public void printAll() throws IOException
+    {
+        // Print all the data in the hashtable
+        FastIterator it = convtable_UrlIdToPageSize.keys();
+        String key;
+        while((key = (String)it.next())!=null)
+        {
+            System.out.println(key  + " " + convtable_UrlIdToPageSize.get(key));
+        }
+
+    }
+
     public void close(){
         try {
             if (recman != null) {
                 recman.close();
             }
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args)
+    {
+        try
+        {
+            PageSize II = new PageSize();
+            II.updatePageSize("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
+            II.printAll();
+            II.close();
+        }
+        catch(Exception e)
+        {
             e.printStackTrace();
         }
     }

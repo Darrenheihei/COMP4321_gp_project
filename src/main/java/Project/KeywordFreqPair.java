@@ -6,17 +6,16 @@ import jdbm.helper.FastIterator;
 import jdbm.htree.HTree;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Vector;
 
 /**
  * THe major part of this class is the hashmap which stores <keyword, frequency> pair
  */
-public class Posting {
+public class KeywordFreqPair {
 
     private RecordManager recman;
     private HTree hashtable;
-    public Posting(String recordmanager, String objectname) throws IOException
+    public KeywordFreqPair(String recordmanager, String objectname) throws IOException
     {
         recman = RecordManagerFactory.createRecordManager(recordmanager);
         long recid = recman.getNamedObject(objectname);
@@ -36,25 +35,19 @@ public class Posting {
      */
     void map(Vector<String> v)
     {
-
-        HashMap<String,Integer> hm = new HashMap<>();
-        for(String str:v)
-        {
-            if(hm.get(str)==null)
-            {
-                hm.put(str,1);
-            }
-            else
-            {
-                hm.put(str,hm.get(str)+1);
-            }
-        }
         try
         {
-            for(String s: hm.keySet())
+            for(String s: v)
             {
-                hashtable.put(s,String.valueOf(hm.get(s)));
+                Object result = hashtable.get(s);
+                if(result == null){
+                    hashtable.put(s,"1");
+                }
+                else {
+                    hashtable.put(s,Integer.toString((Integer.parseInt(hashtable.get(s).toString())+1)));
+                }
             }
+            recman.commit();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -68,7 +61,7 @@ public class Posting {
         String key;
         while((key = (String)it.next())!=null)
         {
-            System.out.println(key  + hashtable.get(key));
+            System.out.println(key  + " " + hashtable.get(key));
         }
 
     }
@@ -79,10 +72,10 @@ public class Posting {
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
 
-        Posting p;
+        KeywordFreqPair p;
         try
         {
-            p = new Posting("projectRM","keyword-frequency");
+            p = new KeywordFreqPair("projectRM","keyword-frequency");
             p.map(v);
             p.printAll();
         }

@@ -59,17 +59,6 @@ public class ForwardIndex {
 
     }
 
-    public HTree getConvtableUrlIdToKeywordId(){ // convtable_urlIdToKeywordId getter
-        return convtable_urlIdToKeywordId;
-    }
-
-    public HTree getConvtableIdToUrl(){ // convtable_idToUrl getter
-        return convtable_idToUrl;
-    }
-
-    public Keyword2Id getK2i(){
-        return k2i;
-    }
     public String getKeywordId(String urlId) throws IOException
     {
         String IDs = convtable_urlIdToKeywordId.get(urlId).toString();
