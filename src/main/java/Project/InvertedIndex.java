@@ -55,8 +55,11 @@ public class InvertedIndex {
 
         for(String str: v)
         {
-            String url_list = convtable_keywordIdToUrlId.get(str).toString();
-            if(url_list != null){ //the keyword exist in the inverted file already
+            String id = forward_index.getK2i().getId(str); //covert keyword to id, not used
+
+            System.out.println("this string is " + str);
+            if(convtable_keywordIdToUrlId.get(str) != null){ //the keyword exist in the inverted file already
+                String url_list = convtable_keywordIdToUrlId.get(str).toString();
                 String[] url_array = url_list.split(" ");
                 String new_keyword_list = "";
 
@@ -65,6 +68,7 @@ public class InvertedIndex {
                 for (int i = 0; i < url_array.length; i += 2) { //loop over the url list to see whether the url exist,
                     if (url_array[i].equals(urlId)) { //If existed, add 1
                         new_keyword_list += url_array[i] + " " + (Integer.parseInt(url_array[i+1]) + 1) + " ";
+                        System.out.println("tseting");
                         urlInList = true;
                     }
                     else{
@@ -79,13 +83,15 @@ public class InvertedIndex {
                 convtable_keywordIdToUrlId.put(str, new_keyword_list);
             }
             else{//the keyword does not exist in the inverted file
-                String new_keyword_list = str + " " + "1";
+                String new_keyword_list = urlId + " " + "1";
                 convtable_keywordIdToUrlId.put(str, new_keyword_list);
             }
 
+            System.out.println(str + " : " + convtable_keywordIdToUrlId.get(str));
+
             //update ForwardIndex
             //forward_index.getConvtableIdToUrl().put(urlId,url); //should be from darren
-            forward_index.addUrlId(urlId);
+            //forward_index.addUrlId(urlId);
             //forward_index.deleteUrlId("testing urlid");
             //forward_index.getConvtableIdToUrl().remove("testing urlid");
 
@@ -121,7 +127,7 @@ public class InvertedIndex {
                 }
             }
         }
-        forward_index.deleteUrlId(urlId);
+        //forward_index.deleteUrlId(urlId);
         //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
 
         recman.commit();
@@ -133,6 +139,20 @@ public class InvertedIndex {
                 recman.close();
             }
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args)
+    {
+        try
+        {
+            InvertedIndex II = new InvertedIndex(false);
+            II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
+            II.close();
+        }
+        catch(Exception e)
+        {
             e.printStackTrace();
         }
     }

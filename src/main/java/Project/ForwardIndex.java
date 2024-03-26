@@ -67,6 +67,9 @@ public class ForwardIndex {
         return convtable_idToUrl;
     }
 
+    public Keyword2Id getK2i(){
+        return k2i;
+    }
     public String getKeywordId(String urlId) throws IOException
     {
         String IDs = convtable_urlIdToKeywordId.get(urlId).toString();
