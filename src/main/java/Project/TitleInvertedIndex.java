@@ -6,23 +6,18 @@ import org.htmlparser.util.ParserException;
 
 import java.io.IOException;
 import java.util.Vector;
-public class InvertedIndex {
+public class TitleInvertedIndex {
     private RecordManager recman;
     private HTree convtable_keywordIdToUrlId; //HTree map urlId with the number of keywords to keywordId
-    private HTree convtable_idToUrl; //convert urlId to url //not used
-    private ForwardIndex forward_index;
-    private boolean isTitle;
-
     private Keyword2Id k2i;
 
     /**
      * The constructor of InvertedIndex
-     * @param isTitle if true then store tile, otherwise store body
      */
-    public InvertedIndex(boolean isTitle) throws IOException
+    public TitleInvertedIndex() throws IOException
     {
         recman = RecordManagerFactory.createRecordManager("projectRM");
-        long recid_urlId2KeywordId = recman.getNamedObject("invertedIndex");
+        long recid_urlId2KeywordId = recman.getNamedObject("titleInvertedIndex");
         if(recid_urlId2KeywordId != 0)
         {
             convtable_keywordIdToUrlId = HTree.load(recman,recid_urlId2KeywordId);
@@ -30,16 +25,14 @@ public class InvertedIndex {
         else
         {
             convtable_keywordIdToUrlId = HTree.createInstance(recman);
-            recman.setNamedObject("keywordToId",convtable_keywordIdToUrlId.getRecid());
+            recman.setNamedObject("titleInvertedIndex",convtable_keywordIdToUrlId.getRecid());
         }
-        this.isTitle = isTitle;
-        forward_index = new ForwardIndex();
 
         k2i = new Keyword2Id();
     }
 
     /**
-     * This function extract keyword from a webpage and insert all keywords to inverted table
+     * This function extract TITLE keyword from a webpage and insert all keywords to inverted table
      * @param urlId the id that correspond to the webpage
      * @param url the actual url coresspond to urlId
      */
@@ -47,12 +40,7 @@ public class InvertedIndex {
         //updateConvtableIdToUrl(urlId, url);
         StringExtractor se = new StringExtractor(url);
         Vector<String> v;
-        if(isTitle){
-            v = se.getTitleArray();
-        }
-        else{
-            v = se.getBodyTextArray();
-        }
+        v = se.getTitleArray();
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
 
@@ -61,7 +49,7 @@ public class InvertedIndex {
             //String id = forward_index.getK2i().getId(str); //covert keyword to id, not used
             String keyword_id = k2i.getId(str);
 
-            System.out.println("this string is " + str);
+            //System.out.println("this string is " + str);
             if(convtable_keywordIdToUrlId.get(keyword_id) != null){ //the keyword exist in the inverted file already
                 String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();
                 String[] url_array = url_list.split(" ");
@@ -72,7 +60,7 @@ public class InvertedIndex {
                 for (int i = 0; i < url_array.length; i += 2) { //loop over the url list to see whether the url exist,
                     if (url_array[i].equals(urlId)) { //If existed, add 1
                         new_keyword_list += url_array[i] + " " + (Integer.parseInt(url_array[i+1]) + 1) + " ";
-                        System.out.println("testing");
+                        //System.out.println("testing");
                         urlInList = true;
                     }
                     else{
@@ -91,7 +79,7 @@ public class InvertedIndex {
                 convtable_keywordIdToUrlId.put(keyword_id, new_keyword_list);
             }
 
-            System.out.println(str + " : " + convtable_keywordIdToUrlId.get(keyword_id));
+            //System.out.println(str + " : " + convtable_keywordIdToUrlId.get(keyword_id));
 
 
             recman.commit();
@@ -99,7 +87,7 @@ public class InvertedIndex {
     }
 
     /**
-     * This function remove all the keywords record of the url
+     * This function remove all the TITLE keywords record of the url
      * @param urlId the id that correspond to the webpage that you want to remove from the index
      * @param keywordsId the whole string containing all stemmed keywords. e.g "compu hello new", suppose can be gotten from ForwardIndex
      */
@@ -150,7 +138,7 @@ public class InvertedIndex {
     {
         try
         {
-            InvertedIndex II = new InvertedIndex(false);
+            BodyInvertedIndex II = new BodyInvertedIndex(false);
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
             II.close();
         }
