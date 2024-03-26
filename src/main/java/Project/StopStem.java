@@ -38,12 +38,9 @@ public class StopStem {
         Porter porter = new Porter();
         for(String str:wordList)
         {
-            if(str.length()>0)
-            {
-                String newStr = porter.stripAffixes(str);
+            String newStr = porter.stripAffixes(str);
+            if(newStr.length() > 0)
                 newWordList.add(newStr);
-            }
-
         }
         return newWordList;
     }
@@ -61,7 +58,7 @@ public class StopStem {
     public static void main(String[] args)
     {
         StringExtractor se = new StringExtractor("http://www.cs.ust.hk/~dlee/4321/");
-        Vector<String> v = se.getString(true);
+        Vector<String> v = se.getAllString(true);
         StopStem stop_stem = new StopStem();
 //        System.out.println("The words before processing: ");
 //        for(int i=0;i<10;i++)
@@ -81,6 +78,8 @@ public class StopStem {
 //        {
 //            System.out.println(v.get(i));
 //        }
+
+//        v = stop_stem.removeStopWords(v);
         v = stop_stem.stopAndStem(v);
         for(String str:v)
         {

@@ -101,12 +101,4 @@ public class ForwardIndex {
             e.printStackTrace();
         }
     }
-
-    public HTree getConvtableUrlIdToKeywordId(){ // convtable_urlIdToKeywordId getter
-        return convtable_urlIdToKeywordId;
-    }
-
-    public HTree getConvtableIdToUrl(){ // convtable_idToUrl getter
-        return convtable_idToUrl;
-    }
 }
