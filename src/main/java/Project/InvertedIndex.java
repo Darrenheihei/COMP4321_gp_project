@@ -2,6 +2,7 @@ package Project;
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
 import jdbm.htree.HTree;
+import org.htmlparser.util.ParserException;
 
 import java.io.IOException;
 import java.util.Vector;
@@ -9,14 +10,15 @@ public class InvertedIndex {
     private RecordManager recman;
     private HTree convtable_keywordIdToUrlId; //HTree map urlId with the number of keywords to keywordId
     private HTree convtable_idToUrl; //convert urlId to url //not used
-
-    //HTree for topic
-
-    //HTree for size of page
     private ForwardIndex forward_index;
+    private boolean isTitle;
 
 
-    public InvertedIndex() throws IOException
+    /**
+     * The constructor of InvertedIndex
+     * @param isTitle if true then store tile, otherwise store body
+     */
+    public InvertedIndex(boolean isTitle) throws IOException
     {
         recman = RecordManagerFactory.createRecordManager("projectRM");
         long recid_urlId2KeywordId = recman.getNamedObject("invertedIndex");
@@ -29,8 +31,8 @@ public class InvertedIndex {
             convtable_keywordIdToUrlId = HTree.createInstance(recman);
             recman.setNamedObject("keywordToId",convtable_keywordIdToUrlId.getRecid());
         }
-
-         forward_index = new ForwardIndex();
+        this.isTitle = isTitle;
+        forward_index = new ForwardIndex();
     }
 
     /**
@@ -38,10 +40,16 @@ public class InvertedIndex {
      * @param urlId the id that correspond to the webpage
      * @param url the actual url coresspond to urlId
      */
-    public void update(String urlId, String url) throws IOException { //include add new word AND update existed word from a document
+    public void update(String urlId, String url) throws IOException, ParserException { //include add new word AND update existed word from a document
         //updateConvtableIdToUrl(urlId, url);
         StringExtractor se = new StringExtractor(url);
-        Vector<String> v = se.getString(true);
+        Vector<String> v;
+        if(isTitle){
+            v = se.getTitleArray();
+        }
+        else{
+            v = se.getBodyTextArray();
+        }
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
 
@@ -64,8 +72,8 @@ public class InvertedIndex {
                     }
                 }
 
-                if(urlInList){ //appned url id in the end with the number of keyword
-                    new_keyword_list += str + " " + "1";
+                if(!urlInList){ //appned url id in the end with the number of keyword
+                    new_keyword_list += urlId + " " + "1";
                 }
                 new_keyword_list = new_keyword_list.trim(); //remove whitespace in the end of string
                 convtable_keywordIdToUrlId.put(str, new_keyword_list);
@@ -99,10 +107,15 @@ public class InvertedIndex {
                             new_url_list += url_array[i] + " " + url_array[i+1] + " ";
                         }
                     }
+
                     new_url_list = new_url_list.trim();
-                    if(!new_url_list.isEmpty()){
+                    if(new_url_list.isEmpty()){
+                        convtable_keywordIdToUrlId.remove(keyword);
+                    }
+                    else {
                         convtable_keywordIdToUrlId.put(keyword, new_url_list);
                     }
+
 
 
                 }
@@ -114,8 +127,14 @@ public class InvertedIndex {
         recman.commit();
     }
 
-    public void close() throws IOException {
-        recman.close();
+    public void close() {
+        try {
+            if (recman != null) {
+                recman.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

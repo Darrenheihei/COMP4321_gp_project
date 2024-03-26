@@ -24,7 +24,7 @@ public class PageSize {
 
     }
 
-    public void updatePageSize(String urlId, String url) throws IOException {
+    public void updatePageSize(String urlId, String url){
         try {
             URL urll = new URL(url);
             URLConnection connection = urll.openConnection();
@@ -49,8 +49,14 @@ public class PageSize {
         return Integer.parseInt(convtable_UrlIdToPageSize.get(urlId).toString());
     }
 
-    public void close() throws IOException {
-        recman.close();
+    public void close(){
+        try {
+            if (recman != null) {
+                recman.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

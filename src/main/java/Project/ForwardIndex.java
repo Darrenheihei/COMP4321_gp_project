@@ -44,7 +44,7 @@ public class ForwardIndex {
         {
             String url = convtable_idToUrl.get(urlId).toString();
             StringExtractor se = new StringExtractor(url);
-            Vector<String> v = se.getString(true);
+            Vector<String> v = se.getAllString(true);
             StopStem stop_stem = new StopStem();
             v = stop_stem.stopAndStem(v);
 
@@ -57,6 +57,14 @@ public class ForwardIndex {
 
         }
 
+    }
+
+    public HTree getConvtableUrlIdToKeywordId(){ // convtable_urlIdToKeywordId getter
+        return convtable_urlIdToKeywordId;
+    }
+
+    public HTree getConvtableIdToUrl(){ // convtable_idToUrl getter
+        return convtable_idToUrl;
     }
 
     public String getKeywordId(String urlId) throws IOException
