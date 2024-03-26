@@ -138,7 +138,7 @@ public class TitleInvertedIndex {
     {
         try
         {
-            BodyInvertedIndex II = new BodyInvertedIndex(false);
+            TitleInvertedIndex II = new TitleInvertedIndex();
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
             II.close();
         }

@@ -13,9 +13,8 @@ public class BodyInvertedIndex {
 
     /**
      * The constructor of InvertedIndex
-     * @param isTitle if true then store tile, otherwise store body
      */
-    public BodyInvertedIndex(boolean isTitle) throws IOException
+    public BodyInvertedIndex() throws IOException
     {
         recman = RecordManagerFactory.createRecordManager("projectRM");
         long recid_urlId2KeywordId = recman.getNamedObject("bodyInvertedIndex");
@@ -138,7 +137,7 @@ public class BodyInvertedIndex {
     {
         try
         {
-            BodyInvertedIndex II = new BodyInvertedIndex(false);
+            BodyInvertedIndex II = new BodyInvertedIndex();
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
             II.close();
         }
