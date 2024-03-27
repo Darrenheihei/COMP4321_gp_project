@@ -8,14 +8,14 @@ import org.htmlparser.util.ParserException;
 import java.io.IOException;
 
 public class UrlId2Title {
-    private RecordManager recman;
-    private HTree convtable_urlIdtoTitle;
+    public RecordManager recman;
+    public HTree convtable_urlIdtoTitle;
 
 
     public UrlId2Title() throws IOException
     {
         recman = RecordManagerFactory.createRecordManager("projectRM");
-        long recid_urlId2Title = recman.getNamedObject("UrlId2Title");
+        long recid_urlId2Title = recman.getNamedObject("urlIdToTitle");
         if(recid_urlId2Title != 0)
         {
             convtable_urlIdtoTitle = HTree.load(recman,recid_urlId2Title);
@@ -23,7 +23,7 @@ public class UrlId2Title {
         else
         {
             convtable_urlIdtoTitle = HTree.createInstance(recman);
-            recman.setNamedObject("UrlId2Title",convtable_urlIdtoTitle.getRecid());
+            recman.setNamedObject("urlIdToTitle",convtable_urlIdtoTitle.getRecid());
         }
 
     }
