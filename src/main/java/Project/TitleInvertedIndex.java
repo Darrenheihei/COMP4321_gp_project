@@ -1,6 +1,7 @@
 package Project;
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
+import jdbm.helper.FastIterator;
 import jdbm.htree.HTree;
 import org.htmlparser.util.ParserException;
 
@@ -179,6 +180,19 @@ public class TitleInvertedIndex {
         recman.commit();
     }
 
+    public void printAll() throws IOException
+    {
+        // Print all the data in the hashtable
+        FastIterator it = convtable_keywordIdToUrlId.keys();
+        String key;
+        while((key = (String)it.next())!=null)
+        {
+            System.out.println(key  + " " + convtable_keywordIdToUrlId.get(key));
+        }
+
+    }
+
+
     public void close() {
         try {
             if (recman != null) {
@@ -195,12 +209,34 @@ public class TitleInvertedIndex {
         {
             TitleInvertedIndex II = new TitleInvertedIndex();
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
-            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("test")));
-            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("page")));
-            II.delete("123", "test page");
-            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("test")));
-            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("page")));
-            II.close();
+            II.printAll();
+//            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("test")));
+//            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("page")));
+//            II.delete("123", "test page");
+//            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("test")));
+//            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("page")));
+
+            RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");
+
+            HTree convtable_keywordIdToUrlIdBody;
+            long recid_titleInvertedIndex = recman.getNamedObject("titleInvertedIndex");
+            if(recid_titleInvertedIndex != 0)
+            {
+                System.out.println("1");
+                convtable_keywordIdToUrlIdBody = HTree.load(recman,recid_titleInvertedIndex);
+            }
+            else
+            {
+                System.out.println("2");
+                convtable_keywordIdToUrlIdBody = HTree.createInstance(recman);
+                recman.setNamedObject("titleInvertedIndex",convtable_keywordIdToUrlIdBody.getRecid());
+            }
+            FastIterator it6 = convtable_keywordIdToUrlIdBody.keys();
+            String key6;
+            while((key6 = (String)it6.next())!=null)
+            {
+                System.out.println(key6 + " = " + convtable_keywordIdToUrlIdBody.get(key6));
+            }
         }
         catch(Exception e)
         {
