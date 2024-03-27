@@ -9,7 +9,7 @@ import java.util.Vector;
 public class TitleInvertedIndex {
     private RecordManager recman;
     private HTree convtable_keywordIdToUrlId; //HTree map urlId with the number of keywords to keywordId
-    private Keyword2Id k2i;
+    private static Keyword2Id k2i;
 
     /**
      * The constructor of InvertedIndex
@@ -79,7 +79,7 @@ public class TitleInvertedIndex {
                 convtable_keywordIdToUrlId.put(keyword_id, new_keyword_list);
             }
 
-            //System.out.println(str + " : " + convtable_keywordIdToUrlId.get(keyword_id));
+            System.out.println(str + " " + keyword_id + " : " + convtable_keywordIdToUrlId.get(keyword_id));
 
 
             recman.commit();
@@ -91,13 +91,47 @@ public class TitleInvertedIndex {
      * @param urlId the id that correspond to the webpage that you want to remove from the index
      * @param keywordsId the whole string containing all stemmed keywords. e.g "compu hello new", suppose can be gotten from ForwardIndex
      */
-    public void delete(String urlId, String keywordsId) throws IOException{
-        //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
-        if(keywordsId != null){ //all keywords from the webpage
-            String[] keywordIdArray = keywordsId.split(" ");
+//    public void delete(String urlId, String keywordsId) throws IOException{
+//        //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
+//        if(keywordsId != null){ //all keywords from the webpage
+//            String[] keywordIdArray = keywordsId.split(" ");
+//
+//            for(String keyword_id : keywordIdArray){
+//                //String keyword_id = k2i.getId(keyword);
+//                String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
+//                if(url_list != null){
+//                    String[] url_array = url_list.split(" ");
+//                    String new_url_list = "";
+//                    for(int i = 0;i < url_array.length; i += 2){
+//                        if(!url_array[i].equals(urlId)){ //skip the url id that want to be removed
+//                            new_url_list += url_array[i] + " " + url_array[i+1] + " ";
+//                        }
+//                    }
+//
+//                    new_url_list = new_url_list.trim();
+//                    if(new_url_list.isEmpty()){
+//                        convtable_keywordIdToUrlId.remove(keyword_id);
+//                    }
+//                    else {
+//                        convtable_keywordIdToUrlId.put(keyword_id, new_url_list);
+//                    }
+//                }
+//            }
+//        }
+//        //forward_index.deleteUrlId(urlId);
+//        //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
+//
+//        recman.commit();
+//    }
 
-            for(String keyword_id : keywordIdArray){
-                //String keyword_id = k2i.getId(keyword);
+
+    public void delete(String urlId, String keywords) throws IOException{
+        //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
+        if(keywords != null){ //all keywords from the webpage
+            String[] keywordArray = keywords.split(" ");
+
+            for(String keyword : keywordArray){
+                String keyword_id = k2i.getId(keyword);
                 String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
                 if(url_list != null){
                     String[] url_array = url_list.split(" ");
@@ -140,6 +174,11 @@ public class TitleInvertedIndex {
         {
             TitleInvertedIndex II = new TitleInvertedIndex();
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
+            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("test")));
+            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("page")));
+            II.delete("123", "test page");
+            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("test")));
+            System.out.println(II.convtable_keywordIdToUrlId.get(k2i.getId("page")));
             II.close();
         }
         catch(Exception e)
