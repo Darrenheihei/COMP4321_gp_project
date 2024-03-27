@@ -15,7 +15,7 @@ public class PageSize {
 
     public PageSize() throws IOException {
         recman = RecordManagerFactory.createRecordManager("projectRM");
-        long recid_urlId2KeywordId = recman.getNamedObject("pageSize");
+        long recid_urlId2KeywordId = recman.getNamedObject("pageSizeIndex");
         if (recid_urlId2KeywordId != 0) {
             convtable_UrlIdToPageSize = HTree.load(recman, recid_urlId2KeywordId);
         } else {
