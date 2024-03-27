@@ -6,5 +6,5 @@ module com.example.comp4321_gp_project {
 
 
     opens com.example.comp4321_gp_project to javafx.fxml;
-    exports com.example.comp4321_gp_project;
+    exports Project;
 }

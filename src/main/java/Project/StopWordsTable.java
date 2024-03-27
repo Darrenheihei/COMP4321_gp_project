@@ -20,7 +20,7 @@ public class StopWordsTable {
         BufferedReader br = null;
         try
         {
-            FileReader fd = new FileReader("Project/stopwords.txt");
+            FileReader fd = new FileReader("C:\\Users\\lamye\\IdeaProjects\\COMP4321_gp_project\\src\\main\\java\\Project\\stopwords.txt");
             br = new BufferedReader(fd);
         }
         catch (FileNotFoundException e)
