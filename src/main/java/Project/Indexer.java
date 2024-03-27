@@ -30,6 +30,12 @@ public class Indexer {
     }
     public void indexing(String url,String urlId) throws IOException, ParserException
     {
+        if(this.k2i == null)
+        {
+            this.k2i = new Keyword2Id();
+        }
+        this.k2i.addKeywordFromUrl(url);
+
         if(this.ps == null)
         {
             this.ps = new PageSize();
@@ -42,26 +48,17 @@ public class Indexer {
         }
         this.urlid2title.addUrl(url,urlId);
 
-        if(this.k2i == null)
-        {
-            this.k2i = new Keyword2Id();
-        }
-        this.k2i.addKeywordFromUrl(url);
-
-
-
-
 
         if(this.titleInvertedIndex == null)
         {
             this.titleInvertedIndex = new TitleInvertedIndex();
         }
-        titleInvertedIndex.update(urlId,url);
+        this.titleInvertedIndex.update(urlId,url);
         if(this.bodyInvertedIndex == null)
         {
             this.bodyInvertedIndex = new BodyInvertedIndex();
         }
-        bodyInvertedIndex.update(urlId,url);
+        this.bodyInvertedIndex.update(urlId,url);
 
         if(this.forwardIndex == null)
         {
@@ -218,6 +215,7 @@ public class Indexer {
             }
 
              //testing title inverted index
+            System.out.println("title inverted index");
             RecordManager recman4 = RecordManagerFactory.createRecordManager("projectRM");
             HTree convtable_keywordIdToUrlIdTitle;
             long recid_titleInvertedIndex = recman4.getNamedObject("titleInvertedIndex");
@@ -238,6 +236,7 @@ public class Indexer {
             }
             System.out.println();
             //testing body inverted index
+            System.out.println("body inverted index");
             RecordManager recman5 = RecordManagerFactory.createRecordManager("projectRM");
             HTree convtable_keywordIdToUrlIdBody;
             long recid_bodyInvertedIndex = recman5.getNamedObject("bodyInvertedIndex");
