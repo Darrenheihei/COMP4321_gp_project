@@ -42,13 +42,15 @@ public class Indexer {
         }
         this.urlid2title.addUrl(url,urlId);
 
-
-
-        if(this.forwardIndex == null)
+        if(this.k2i == null)
         {
-            this.forwardIndex = new ForwardIndex();
+            this.k2i = new Keyword2Id();
         }
-        this.forwardIndex.addUrlId(urlId);
+        this.k2i.addKeywordFromUrl(url);
+
+
+
+
 
         if(this.titleInvertedIndex == null)
         {
@@ -61,11 +63,13 @@ public class Indexer {
         }
         bodyInvertedIndex.update(urlId,url);
 
-        if(this.k2i == null)
+        if(this.forwardIndex == null)
         {
-            this.k2i = new Keyword2Id();
+            this.forwardIndex = new ForwardIndex();
         }
-        this.k2i.addKeywordFromUrl(url);
+        this.forwardIndex.addUrlId(urlId);
+
+
     }
 
     public static void main(String[] args)
