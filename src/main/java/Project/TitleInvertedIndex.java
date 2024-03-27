@@ -37,7 +37,7 @@ public class TitleInvertedIndex {
         else
         {
             titleIndex_UrlIdRecord = HTree.createInstance(recman);
-            recman.setNamedObject("titleIndex_UrlIdRecord",convtable_keywordIdToUrlId.getRecid());
+            recman.setNamedObject("titleIndex_UrlIdRecord",titleIndex_UrlIdRecord.getRecid());
         }
 
         k2i = new Keyword2Id();

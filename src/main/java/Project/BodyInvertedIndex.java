@@ -39,7 +39,7 @@ public class BodyInvertedIndex {
         else
         {
             bodyIndex_UrlIdRecord = HTree.createInstance(recman);
-            recman.setNamedObject("titleIndex_UrlIdRecord",convtable_keywordIdToUrlId.getRecid());
+            recman.setNamedObject("titleIndex_UrlIdRecord",bodyIndex_UrlIdRecord.getRecid());
         }
 
         k2i = new Keyword2Id();
@@ -58,7 +58,7 @@ public class BodyInvertedIndex {
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
 
-        //System.out.println("testing1");
+        System.out.println("testing1");
         if(bodyIndex_UrlIdRecord.get(urlId) != null){
             //System.out.println("testing2");
             return;
@@ -180,27 +180,27 @@ public class BodyInvertedIndex {
             II.printAll();
             //II.close();
 
-//            RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");
-//
-//            HTree convtable_keywordIdToUrlIdTitle;
-//            long recid_titleInvertedIndex = recman.getNamedObject("titleInvertedIndex");
-//            if(recid_titleInvertedIndex != 0)
-//            {
-//                System.out.println("1");
-//                convtable_keywordIdToUrlIdTitle = HTree.load(recman,recid_titleInvertedIndex);
-//            }
-//            else
-//            {
-//                System.out.println("2");
-//                convtable_keywordIdToUrlIdTitle = HTree.createInstance(recman);
-//                recman.setNamedObject("titleInvertedIndex",convtable_keywordIdToUrlIdTitle.getRecid());
-//            }
-//            FastIterator it6 = convtable_keywordIdToUrlIdTitle.keys();
-//            String key6;
-//            while((key6 = (String)it6.next())!=null)
-//            {
-//                System.out.println(key6 + " = " + convtable_keywordIdToUrlIdTitle.get(key6));
-//            }
+            RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");
+
+            HTree convtable_keywordIdToUrlIdBody;
+            long recid_bodyInvertedIndex = recman.getNamedObject("bodyInvertedIndex");
+            if(recid_bodyInvertedIndex != 0)
+            {
+                System.out.println("1");
+                convtable_keywordIdToUrlIdBody = HTree.load(recman,recid_bodyInvertedIndex);
+            }
+            else
+            {
+                System.out.println("2");
+                convtable_keywordIdToUrlIdBody = HTree.createInstance(recman);
+                recman.setNamedObject("bodyInvertedIndex",convtable_keywordIdToUrlIdBody.getRecid());
+            }
+            FastIterator it6 = convtable_keywordIdToUrlIdBody.keys();
+            String key6;
+            while((key6 = (String)it6.next())!=null)
+            {
+                System.out.println(key6 + " = " + convtable_keywordIdToUrlIdBody.get(key6));
+            }
         }
         catch(Exception e)
         {
