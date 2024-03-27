@@ -59,6 +59,7 @@ public class Keyword2Id {
     }
     public String getId(String keyword) throws IOException
     {
+
         if(convtable_keywordToId.get(keyword) == null)
         {
             addKeyword(keyword);
@@ -90,6 +91,8 @@ public class Keyword2Id {
         }
     }
 
+
+
     public void addKeywordFromUrl(String url) throws IOException
     {
         StringExtractor se = new StringExtractor(url);
@@ -99,9 +102,15 @@ public class Keyword2Id {
 
         for(String str:v)
         {
-            addKeyword(str);
+            if(convtable_keywordToId.get(str)==null) {
+                String newId = UUID.randomUUID().toString();
+                convtable_keywordToId.put(str, newId);
+                convtable_idToKeyword.put(newId, str);
+            }
         }
+        recman.commit();
     }
+
 
 
     public void finalize() throws IOException
