@@ -1,4 +1,8 @@
 package Project;
+<<<<<<< HEAD
+=======
+
+>>>>>>> eb7065dd28659d30db7b7a9449ff3d052bdd72b2
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
 import jdbm.helper.FastIterator;
@@ -9,6 +13,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Vector;
+<<<<<<< HEAD
+=======
+
+>>>>>>> eb7065dd28659d30db7b7a9449ff3d052bdd72b2
 public class PageSize {
     private RecordManager recman;
     private HTree convtable_UrlIdToPageSize; //HTree map urlId to page size
@@ -80,6 +88,28 @@ public class PageSize {
             II.updatePageSize("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
             II.printAll();
             II.close();
+<<<<<<< HEAD
+=======
+
+            RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");
+            HTree convtable_pageSize;
+            long recid_pageSize = recman.getNamedObject("pageSizeIndex");
+            if(recid_pageSize != 0)
+            {
+                convtable_pageSize = HTree.load(recman,recid_pageSize);
+            }
+            else
+            {
+                convtable_pageSize = HTree.createInstance(recman);
+                recman.setNamedObject("pageSizeIndex",convtable_pageSize.getRecid());
+            }
+            FastIterator it = convtable_pageSize.keys();
+            String size = "";
+            while((size=(String)it.next())!=null)
+            {
+                System.out.println(size +" "+ convtable_pageSize.get(size).toString());
+            }
+>>>>>>> eb7065dd28659d30db7b7a9449ff3d052bdd72b2
         }
         catch(Exception e)
         {

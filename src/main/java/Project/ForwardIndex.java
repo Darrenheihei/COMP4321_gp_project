@@ -48,9 +48,11 @@ public class ForwardIndex {
             StopStem stop_stem = new StopStem();
             v = stop_stem.stopAndStem(v);
 
+
             String IDs = "";
             for(String str: v)
             {
+
                 IDs = IDs + k2i.getId(str) + " ";
             }
             convtable_urlIdToKeywordId.put(urlId,IDs);
