@@ -9,6 +9,7 @@ import java.util.Vector;
 public class TitleInvertedIndex {
     private RecordManager recman;
     private HTree convtable_keywordIdToUrlId; //HTree map urlId with the number of keywords to keywordId
+    private HTree titleIndex_UrlIdRecord;
     private static Keyword2Id k2i;
 
     /**
@@ -28,6 +29,17 @@ public class TitleInvertedIndex {
             recman.setNamedObject("titleInvertedIndex",convtable_keywordIdToUrlId.getRecid());
         }
 
+        long recid_UrlIdRecord = recman.getNamedObject("titleIndex_UrlIdRecord");
+        if(recid_UrlIdRecord != 0)
+        {
+            titleIndex_UrlIdRecord = HTree.load(recman,recid_UrlIdRecord);
+        }
+        else
+        {
+            titleIndex_UrlIdRecord = HTree.createInstance(recman);
+            recman.setNamedObject("titleIndex_UrlIdRecord",convtable_keywordIdToUrlId.getRecid());
+        }
+
         k2i = new Keyword2Id();
     }
 
@@ -43,6 +55,11 @@ public class TitleInvertedIndex {
         v = se.getTitleArray();
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
+        if(titleIndex_UrlIdRecord.get(urlId) != null){
+            return;
+        }
+        titleIndex_UrlIdRecord.put(urlId,"1");
+        recman.commit();
 
         for(String str: v)
         {
@@ -93,6 +110,7 @@ public class TitleInvertedIndex {
      */
 //    public void delete(String urlId, String keywordsId) throws IOException{
 //        //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
+//        if(titleIndex_UrlIdRecord.get(urlId) == null) return;
 //        if(keywordsId != null){ //all keywords from the webpage
 //            String[] keywordIdArray = keywordsId.split(" ");
 //
@@ -118,6 +136,7 @@ public class TitleInvertedIndex {
 //                }
 //            }
 //        }
+//        titleIndex_UrlIdRecord.remove(urlId);
 //        //forward_index.deleteUrlId(urlId);
 //        //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
 //
@@ -127,6 +146,7 @@ public class TitleInvertedIndex {
 
     public void delete(String urlId, String keywords) throws IOException{
         //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
+        if(titleIndex_UrlIdRecord.get(urlId) == null) return;
         if(keywords != null){ //all keywords from the webpage
             String[] keywordArray = keywords.split(" ");
 
@@ -152,6 +172,7 @@ public class TitleInvertedIndex {
                 }
             }
         }
+        titleIndex_UrlIdRecord.remove(urlId);
         //forward_index.deleteUrlId(urlId);
         //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
 

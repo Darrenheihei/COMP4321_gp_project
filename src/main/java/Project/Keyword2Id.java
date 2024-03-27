@@ -59,11 +59,10 @@ public class Keyword2Id {
     }
     public String getId(String keyword) throws IOException
     {
-
-            if(convtable_keywordToId.get(keyword) == null)
-            {
-                addKeyword(keyword);
-            }
+        if(convtable_keywordToId.get(keyword) == null)
+        {
+            addKeyword(keyword);
+        }
         String id = convtable_keywordToId.get(keyword).toString();
         return id;
     }

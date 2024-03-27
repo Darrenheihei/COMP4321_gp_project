@@ -1,10 +1,8 @@
 package Project;
-<<<<<<< HEAD
-=======
 
->>>>>>> eb7065dd28659d30db7b7a9449ff3d052bdd72b2
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
+import jdbm.helper.FastIterator;
 import jdbm.htree.HTree;
 import org.htmlparser.util.ParserException;
 
@@ -13,6 +11,7 @@ import java.util.Vector;
 public class BodyInvertedIndex {
     private RecordManager recman;
     private HTree convtable_keywordIdToUrlId; //HTree map urlId with the number of keywords to keywordId
+    private HTree bodyIndex_UrlIdRecord;
     private Keyword2Id k2i;
 
     /**
@@ -31,6 +30,18 @@ public class BodyInvertedIndex {
             convtable_keywordIdToUrlId = HTree.createInstance(recman);
             recman.setNamedObject("bodyInvertedIndex",convtable_keywordIdToUrlId.getRecid());
         }
+
+        long recid_UrlIdRecord = recman.getNamedObject("titleIndex_UrlIdRecord");
+        if(recid_UrlIdRecord != 0)
+        {
+            bodyIndex_UrlIdRecord = HTree.load(recman,recid_UrlIdRecord);
+        }
+        else
+        {
+            bodyIndex_UrlIdRecord = HTree.createInstance(recman);
+            recman.setNamedObject("titleIndex_UrlIdRecord",convtable_keywordIdToUrlId.getRecid());
+        }
+
         k2i = new Keyword2Id();
     }
 
@@ -46,6 +57,15 @@ public class BodyInvertedIndex {
         v = se.getBodyTextArray();
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
+
+        //System.out.println("testing1");
+        if(bodyIndex_UrlIdRecord.get(urlId) != null){
+            //System.out.println("testing2");
+            return;
+        }
+        //System.out.println("testing3");
+        bodyIndex_UrlIdRecord.put(urlId,"1");
+        recman.commit();
 
         for(String str: v)
         {
@@ -72,7 +92,7 @@ public class BodyInvertedIndex {
                 }
 
                 if(!urlInList){ //appned url id in the end with the number of keyword
-                    new_keyword_list += urlId + " " + "1";
+                    new_keyword_list += keyword_id + " " + "1";
                 }
                 new_keyword_list = new_keyword_list.trim(); //remove whitespace in the end of string
                 convtable_keywordIdToUrlId.put(keyword_id, new_keyword_list);
@@ -96,6 +116,7 @@ public class BodyInvertedIndex {
      */
     public void delete(String urlId, String keywordsId) throws IOException{
         //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
+        if(bodyIndex_UrlIdRecord.get(urlId) == null) return;
         if(keywordsId != null){ //all keywords from the webpage
             String[] keywordIdArray = keywordsId.split(" ");
 
@@ -121,10 +142,23 @@ public class BodyInvertedIndex {
                 }
             }
         }
+        bodyIndex_UrlIdRecord.remove(urlId);
         //forward_index.deleteUrlId(urlId);
         //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
 
         recman.commit();
+    }
+
+    public void printAll() throws IOException
+    {
+        // Print all the data in the hashtable
+        FastIterator it = convtable_keywordIdToUrlId.keys();
+        String key;
+        while((key = (String)it.next())!=null)
+        {
+            System.out.println(key  + " " + convtable_keywordIdToUrlId.get(key));
+        }
+
     }
 
     public void close() {
@@ -143,7 +177,30 @@ public class BodyInvertedIndex {
         {
             BodyInvertedIndex II = new BodyInvertedIndex();
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
-            II.close();
+            II.printAll();
+            //II.close();
+
+//            RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");
+//
+//            HTree convtable_keywordIdToUrlIdTitle;
+//            long recid_titleInvertedIndex = recman.getNamedObject("titleInvertedIndex");
+//            if(recid_titleInvertedIndex != 0)
+//            {
+//                System.out.println("1");
+//                convtable_keywordIdToUrlIdTitle = HTree.load(recman,recid_titleInvertedIndex);
+//            }
+//            else
+//            {
+//                System.out.println("2");
+//                convtable_keywordIdToUrlIdTitle = HTree.createInstance(recman);
+//                recman.setNamedObject("titleInvertedIndex",convtable_keywordIdToUrlIdTitle.getRecid());
+//            }
+//            FastIterator it6 = convtable_keywordIdToUrlIdTitle.keys();
+//            String key6;
+//            while((key6 = (String)it6.next())!=null)
+//            {
+//                System.out.println(key6 + " = " + convtable_keywordIdToUrlIdTitle.get(key6));
+//            }
         }
         catch(Exception e)
         {
