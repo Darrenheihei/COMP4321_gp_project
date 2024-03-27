@@ -8,11 +8,11 @@ import java.io.IOException;
 import java.util.Vector;
 
 public class ForwardIndex {
-    private RecordManager recman;
-    private HTree convtable_urlIdToKeywordId;
-    private HTree convtable_idToUrl;
-    private Keyword2Id k2i;
+    public RecordManager recman;
+    public HTree convtable_urlIdToKeywordId;
+    public HTree convtable_idToUrl;
 
+    public Keyword2Id k2i;
 
     public ForwardIndex() throws IOException
     {
@@ -25,16 +25,17 @@ public class ForwardIndex {
         else
         {
             convtable_urlIdToKeywordId = HTree.createInstance(recman);
-            recman.setNamedObject("keywordToId",convtable_urlIdToKeywordId.getRecid());
+            recman.setNamedObject("forwardIndex",convtable_urlIdToKeywordId.getRecid());
         }
 
-        long recid = recman.getNamedObject("idToUrl");
-        if (recid != 0){
-            convtable_idToUrl = HTree.load(recman, recid);
+        long recid_idToUrl = recman.getNamedObject("idToUrl");
+        if (recid_idToUrl != 0){
+            convtable_idToUrl = HTree.load(recman, recid_idToUrl);
         } else {
             convtable_idToUrl = HTree.createInstance(recman);
             recman.setNamedObject( "idToUrl", convtable_idToUrl.getRecid() );
         }
+
 
         k2i = new Keyword2Id();
     }
@@ -44,18 +45,21 @@ public class ForwardIndex {
         {
             String url = convtable_idToUrl.get(urlId).toString();
             StringExtractor se = new StringExtractor(url);
-            Vector<String> v = se.getString(true);
+            Vector<String> v = se.getAllString(true);
             StopStem stop_stem = new StopStem();
             v = stop_stem.stopAndStem(v);
+
 
             String IDs = "";
             for(String str: v)
             {
+
                 IDs = IDs + k2i.getId(str) + " ";
             }
             convtable_urlIdToKeywordId.put(urlId,IDs);
-
+            recman.commit();
         }
+
 
     }
 
@@ -70,6 +74,7 @@ public class ForwardIndex {
         if(convtable_urlIdToKeywordId.get(urlId)!=null)
         {
             convtable_urlIdToKeywordId.remove(urlId);
+            recman.commit();
         }
     }
 
