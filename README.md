@@ -11,3 +11,13 @@ Compile the code: in the `java` directory, do `javac -cp htmlparser.jar Project/
 If there is still error, try to change `htmlparser.jar` to using whole path starting from C:
 
 Execute the executable: in the `java` directory, do `java -cp ".;htmlparser.jar" Project.Spider`
+
+
+
+How to use makefile:
+
+compile all code: In the `java` directory, do `make -f MakeFileWindow.mk`
+
+clean all .class files: In the `java` directory, do `make -f MakeFileWindow.mk clean`
+
+Note: you do not need to do the cleaning before the compilation every time. Just compile it and it will update all necessary .class file for you
