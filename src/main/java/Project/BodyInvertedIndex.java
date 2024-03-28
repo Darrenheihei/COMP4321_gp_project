@@ -72,29 +72,31 @@ public class BodyInvertedIndex {
                     String newStr = "";
                     for(int i=0; i < strArray.length;i+=2)
                     {
-                        if(strArray[i].equals(keywordId))
+                        if(strArray[i].equals(urlId))
                         {
-                            newStr = newStr+keywordId+" "+hashMap.get(keyword)+" ";
+                            newStr = newStr + urlId + " " + hashMap.get(keyword)+" ";
                         }
                         else
                         {
-                            newStr = newStr+strArray[i]+" "+strArray[i+1]+" ";
+                            newStr = newStr + strArray[i] + " " + strArray[i+1] + " ";
                         }
                     }
+                    newStr = newStr.trim();
                     this.convtable_keywordIdToUrlId.put(keywordId,newStr);
                 }
                 else
                 {
-
-                    this.convtable_keywordIdToUrlId.put(keywordId,longStr+urlId+" "+hashMap.get(keyword).toString()+" ");
+                    String newStr = longStr + " " + urlId + " " + hashMap.get(keyword).toString();
+                    this.convtable_keywordIdToUrlId.put(keywordId,newStr);
                 }
 
             }
             else
             {
 
-                this.convtable_keywordIdToUrlId.put(keywordId,urlId+" "+hashMap.get(keyword).toString()+" ");
+                this.convtable_keywordIdToUrlId.put(keywordId,urlId + " " + hashMap.get(keyword).toString());
             }
+            //System.out.println(keyword + " : " + convtable_keywordIdToUrlId.get(keywordId));
         }
         recman.commit();
     }
@@ -133,7 +135,6 @@ public class BodyInvertedIndex {
         }
         //forward_index.deleteUrlId(urlId);
         //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
-
         recman.commit();
     }
 
@@ -154,6 +155,7 @@ public class BodyInvertedIndex {
             BodyInvertedIndex II = new BodyInvertedIndex();
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm");
 //            II.close();
+
             System.out.println("body inverted index");
             RecordManager recman5 = RecordManagerFactory.createRecordManager("projectRM");
             HTree convtable_keywordIdToUrlIdBody;
