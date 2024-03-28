@@ -5,6 +5,7 @@ import jdbm.RecordManagerFactory;
 import jdbm.htree.HTree;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Vector;
 
 public class ForwardIndex {
@@ -48,9 +49,15 @@ public class ForwardIndex {
             StopStem stop_stem = new StopStem();
             v = stop_stem.stopAndStem(v);
 
+            HashSet<String> hs = new HashSet<>();
+            for(String str:v)
+            {
+                hs.add(str);
+            }
+
 
             String IDs = "";
-            for(String str: v)
+            for(String str:hs)
             {
 
                 IDs = IDs + k2i.getId(str) + " ";

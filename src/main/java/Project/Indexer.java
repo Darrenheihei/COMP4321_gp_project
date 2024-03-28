@@ -20,47 +20,42 @@ public class Indexer {
 
     public Indexer() throws IOException
     {
-//        this.ps = new PageSize();
-//        urlid2title = new UrlId2Title();
-//        k2i = new Keyword2Id();
-//        forwardIndex = new ForwardIndex();
-//        titleInvertedIndex = new TitleInvertedIndex();
-//        bodyInvertedIndex = new BodyInvertedIndex();
+
 
     }
     public void indexing(String url,String urlId) throws IOException, ParserException
     {
-        if(this.k2i == null)
+//        if(this.k2i == null)
         {
             this.k2i = new Keyword2Id();
         }
         this.k2i.addKeywordFromUrl(url);
 
-        if(this.ps == null)
+//        if(this.ps == null)
         {
             this.ps = new PageSize();
         }
         this.ps.updatePageSize(urlId,url);
 
-        if(this.urlid2title == null)
+//        if(this.urlid2title == null)
         {
             this.urlid2title = new UrlId2Title();
         }
         this.urlid2title.addUrl(url,urlId);
 
 
-        if(this.titleInvertedIndex == null)
+//        if(this.titleInvertedIndex == null)
         {
             this.titleInvertedIndex = new TitleInvertedIndex();
         }
         this.titleInvertedIndex.update(urlId,url);
-        if(this.bodyInvertedIndex == null)
+//        if(this.bodyInvertedIndex == null)
         {
             this.bodyInvertedIndex = new BodyInvertedIndex();
         }
         this.bodyInvertedIndex.update(urlId,url);
 
-        if(this.forwardIndex == null)
+//        if(this.forwardIndex == null)
         {
             this.forwardIndex = new ForwardIndex();
         }
@@ -97,13 +92,20 @@ public class Indexer {
                 recman.setNamedObject("idToUrl",convtable_idToUrl.getRecid());
             }
 
-            convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm","testid");
-            convtable_idToUrl.put("testid","https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
+            convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm","testid");
+            convtable_idToUrl.put("testid","https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm");
+            convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm","testid2");
+            convtable_idToUrl.put("testid2","https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm");
+//            convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
+//            convtable_idToUrl.put("testid3","https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm");
             recman.commit();
 
 
             Indexer indexer = new Indexer();
-            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm","testid");
+            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm","testid");
+            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm","testid2");
+//            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
+
 
             FastIterator it1 = convtable_urlToId.keys();
             String key1;

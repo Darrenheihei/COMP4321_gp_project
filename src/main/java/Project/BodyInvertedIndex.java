@@ -65,41 +65,36 @@ public class BodyInvertedIndex {
             String keywordId = this.k2i.getId(keyword);
             if(this.convtable_keywordIdToUrlId.get(keywordId)!=null)
             {
-                System.out.println(keyword + " is in the hash tree! ");
                 String longStr = this.convtable_keywordIdToUrlId.get(keywordId).toString();
                 if(longStr.contains(urlId))
                 {
-                    System.out.println(keyword + " contain the urlId! ");
                     String[] strArray = longStr.split(" ");
                     String newStr = "";
                     for(int i=0; i < strArray.length;i+=2)
                     {
                         if(strArray[i].equals(urlId))
                         {
-                            newStr = newStr + urlId + " " + hashMap.get(keyword)+" ";
+                            newStr = newStr+urlId+" "+hashMap.get(keyword)+" ";
                         }
                         else
                         {
-                            newStr = newStr + strArray[i] + " " + strArray[i+1] + " ";
+                            newStr = newStr+strArray[i]+" "+strArray[i+1]+" ";
                         }
                     }
-                    newStr = newStr.trim();
                     this.convtable_keywordIdToUrlId.put(keywordId,newStr);
                 }
                 else
                 {
-                    System.out.println(keyword + " does not contain the urlId! ");
-                    String newStr = longStr + " " + urlId + " " + hashMap.get(keyword).toString();
-                    this.convtable_keywordIdToUrlId.put(keywordId,newStr);
+
+                    this.convtable_keywordIdToUrlId.put(keywordId,longStr+urlId+" "+hashMap.get(keyword).toString()+" ");
                 }
 
             }
             else
             {
-                System.out.println(keyword + " is not in the hash tree!");
-                this.convtable_keywordIdToUrlId.put(keywordId,urlId + " " + hashMap.get(keyword).toString());
+
+                this.convtable_keywordIdToUrlId.put(keywordId,urlId+" "+hashMap.get(keyword).toString()+" ");
             }
-            System.out.println(keyword + " : " + convtable_keywordIdToUrlId.get(keywordId));
         }
         recman.commit();
     }
@@ -138,6 +133,7 @@ public class BodyInvertedIndex {
         }
         //forward_index.deleteUrlId(urlId);
         //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
+
         recman.commit();
     }
 
@@ -158,7 +154,6 @@ public class BodyInvertedIndex {
             BodyInvertedIndex II = new BodyInvertedIndex();
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm");
 //            II.close();
-
             System.out.println("body inverted index");
             RecordManager recman5 = RecordManagerFactory.createRecordManager("projectRM");
             HTree convtable_keywordIdToUrlIdBody;

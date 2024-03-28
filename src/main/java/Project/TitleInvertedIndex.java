@@ -88,42 +88,56 @@ public class TitleInvertedIndex {
 //            recman.commit();
 //        }
         HashMap<String, Integer> hashMap = new HashMap<>();
-        for (String str : v) {
-            if (hashMap.get(str) == null) {
-                hashMap.put(str, 1);
-            } else {
+        for(String str: v)
+        {
+            if(hashMap.get(str) == null)
+            {
+                hashMap.put(str,1);
+            }
+            else
+            {
                 int fre = hashMap.get(str);
-                hashMap.put(str, fre + 1);
+                hashMap.put(str, fre+1);
             }
         }
 
-        for (String keyword : hashMap.keySet()) {
+        for(String keyword: hashMap.keySet())
+        {
             String keywordId = this.k2i.getId(keyword);
-            if (this.convtable_keywordIdToUrlId.get(keywordId) != null) {
+            if(this.convtable_keywordIdToUrlId.get(keywordId)!=null)
+            {
                 String longStr = this.convtable_keywordIdToUrlId.get(keywordId).toString();
-                if (longStr.contains(urlId)) {
+                if(longStr.contains(urlId))
+                {
                     String[] strArray = longStr.split(" ");
                     String newStr = "";
-                    for (int i = 0; i < strArray.length; i += 2) {
-                        if (strArray[i].equals(urlId)) {
-                            newStr = newStr + urlId + " " + hashMap.get(keyword) + " ";
-                        } else {
-                            newStr = newStr + strArray[i] + " " + strArray[i + 1] + " ";
+                    for(int i=0; i < strArray.length;i+=2)
+                    {
+                        if(strArray[i].equals(urlId))
+                        {
+                            newStr = newStr+urlId+" "+hashMap.get(keyword)+" ";
+                        }
+                        else
+                        {
+                            newStr = newStr+strArray[i]+" "+strArray[i+1]+" ";
                         }
                     }
-                    newStr = newStr.trim();
-                    this.convtable_keywordIdToUrlId.put(keywordId, newStr);
-                } else {
-                    String newStr = longStr + " " + urlId + " " + hashMap.get(keyword).toString();
-                    this.convtable_keywordIdToUrlId.put(keywordId, newStr);
+                    this.convtable_keywordIdToUrlId.put(keywordId,newStr);
+                }
+                else
+                {
+
+                    this.convtable_keywordIdToUrlId.put(keywordId,longStr+urlId+" "+hashMap.get(keyword).toString()+" ");
                 }
 
-            } else {
-
-                this.convtable_keywordIdToUrlId.put(keywordId, urlId + " " + hashMap.get(keyword).toString());
             }
-            recman.commit();
+            else
+            {
+
+                this.convtable_keywordIdToUrlId.put(keywordId,urlId+" "+hashMap.get(keyword).toString()+" ");
+            }
         }
+        recman.commit();
     }
 
     /**
