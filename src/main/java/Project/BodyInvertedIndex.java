@@ -2,10 +2,12 @@ package Project;
 
 import jdbm.RecordManager;
 import jdbm.RecordManagerFactory;
+import jdbm.helper.FastIterator;
 import jdbm.htree.HTree;
 import org.htmlparser.util.ParserException;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Vector;
 public class BodyInvertedIndex {
     private RecordManager recman;
@@ -44,46 +46,57 @@ public class BodyInvertedIndex {
         StopStem stop_stem = new StopStem();
         v = stop_stem.stopAndStem(v);
 
+        HashMap<String, Integer> hashMap = new HashMap<>();
         for(String str: v)
         {
-            //String id = forward_index.getK2i().getId(str); //covert keyword to id, not used
-            String keyword_id = k2i.getId(str);
-
-            //System.out.println("this string is " + str);
-            if(convtable_keywordIdToUrlId.get(keyword_id) != null){ //the keyword exist in the inverted file already
-                String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();
-                String[] url_array = url_list.split(" ");
-                String new_keyword_list = "";
-
-                boolean urlInList = false; //it is possible that the url id need to be appended in the end
-
-                for (int i = 0; i < url_array.length; i += 2) { //loop over the url list to see whether the url exist,
-                    if (url_array[i].equals(urlId)) { //If existed, add 1
-                        new_keyword_list += url_array[i] + " " + (Integer.parseInt(url_array[i+1]) + 1) + " ";
-                        //System.out.println("testing");
-                        urlInList = true;
-                    }
-                    else{
-                        new_keyword_list += url_array[i] + " " + url_array[i+1] + " ";
-                    }
-                }
-
-                if(!urlInList){ //appned url id in the end with the number of keyword
-                    new_keyword_list += urlId + " " + "1";
-                }
-                new_keyword_list = new_keyword_list.trim(); //remove whitespace in the end of string
-                convtable_keywordIdToUrlId.put(keyword_id, new_keyword_list);
+            if(hashMap.get(str) == null)
+            {
+                hashMap.put(str,1);
             }
-            else{//the keyword does not exist in the inverted file
-                String new_keyword_list = urlId + " " + "1";
-                convtable_keywordIdToUrlId.put(keyword_id, new_keyword_list);
+            else
+            {
+                int fre = hashMap.get(str);
+                hashMap.put(str, fre+1);
             }
-
-            //System.out.println(str + " : " + convtable_keywordIdToUrlId.get(keyword_id));
-
-
-            recman.commit();
         }
+
+        for(String keyword: hashMap.keySet())
+        {
+            String keywordId = this.k2i.getId(keyword);
+            if(this.convtable_keywordIdToUrlId.get(keywordId)!=null)
+            {
+                String longStr = this.convtable_keywordIdToUrlId.get(keywordId).toString();
+                if(longStr.contains(urlId))
+                {
+                    String[] strArray = longStr.split(" ");
+                    String newStr = "";
+                    for(int i=0; i < strArray.length;i+=2)
+                    {
+                        if(strArray[i].equals(keywordId))
+                        {
+                            newStr = newStr+keywordId+" "+hashMap.get(keyword)+" ";
+                        }
+                        else
+                        {
+                            newStr = newStr+strArray[i]+" "+strArray[i+1]+" ";
+                        }
+                    }
+                    this.convtable_keywordIdToUrlId.put(keywordId,newStr);
+                }
+                else
+                {
+
+                    this.convtable_keywordIdToUrlId.put(keywordId,longStr+urlId+" "+hashMap.get(keyword).toString()+" ");
+                }
+
+            }
+            else
+            {
+
+                this.convtable_keywordIdToUrlId.put(keywordId,urlId+" "+hashMap.get(keyword).toString()+" ");
+            }
+        }
+        recman.commit();
     }
 
     /**
@@ -139,8 +152,28 @@ public class BodyInvertedIndex {
         try
         {
             BodyInvertedIndex II = new BodyInvertedIndex();
-            II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
-            II.close();
+            II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm");
+//            II.close();
+            System.out.println("body inverted index");
+            RecordManager recman5 = RecordManagerFactory.createRecordManager("projectRM");
+            HTree convtable_keywordIdToUrlIdBody;
+            long recid_bodyInvertedIndex = recman5.getNamedObject("bodyInvertedIndex");
+            if(recid_bodyInvertedIndex != 0)
+            {
+                convtable_keywordIdToUrlIdBody = HTree.load(recman5,recid_bodyInvertedIndex);
+            }
+            else
+            {
+                convtable_keywordIdToUrlIdBody = HTree.createInstance(recman5);
+                recman5.setNamedObject("bodyInvertedIndex",convtable_keywordIdToUrlIdBody.getRecid());
+            }
+            FastIterator it7 = convtable_keywordIdToUrlIdBody.keys();
+            String key7;
+            while((key7 = (String)it7.next())!=null)
+            {
+                System.out.println(key7 + " = " + convtable_keywordIdToUrlIdBody.get(key7));
+            }
+
         }
         catch(Exception e)
         {
