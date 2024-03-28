@@ -65,6 +65,7 @@ public class BodyInvertedIndex {
             String keywordId = this.k2i.getId(keyword);
             if(this.convtable_keywordIdToUrlId.get(keywordId)!=null)
             {
+                System.out.println(keyword + " already exist!");
                 String longStr = this.convtable_keywordIdToUrlId.get(keywordId).toString();
                 if(longStr.contains(urlId))
                 {
@@ -81,18 +82,19 @@ public class BodyInvertedIndex {
                             newStr = newStr+strArray[i]+" "+strArray[i+1]+" ";
                         }
                     }
+                    System.out.println("First time insert" + urlId + " to " + keyword);
                     this.convtable_keywordIdToUrlId.put(keywordId,newStr);
                 }
                 else
                 {
-
+                    System.out.println("Insert" + urlId + " in the end of " + keyword);
                     this.convtable_keywordIdToUrlId.put(keywordId,longStr+urlId+" "+hashMap.get(keyword).toString()+" ");
                 }
 
             }
             else
             {
-
+                System.out.println("First time insert" + keyword);
                 this.convtable_keywordIdToUrlId.put(keywordId,urlId+" "+hashMap.get(keyword).toString()+" ");
             }
         }
@@ -111,8 +113,8 @@ public class BodyInvertedIndex {
 
             for(String keyword_id : keywordIdArray){
                 //String keyword_id = k2i.getId(keyword);
-                String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
-                if(url_list != null){
+                if(convtable_keywordIdToUrlId.get(keyword_id) != null){
+                    String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
                     String[] url_array = url_list.split(" ");
                     String new_url_list = "";
                     for(int i = 0;i < url_array.length; i += 2){
@@ -137,6 +139,15 @@ public class BodyInvertedIndex {
         recman.commit();
     }
 
+    public void printAll() throws IOException {
+        FastIterator it7 = convtable_keywordIdToUrlId.keys();
+        String key7;
+        while((key7 = (String)it7.next())!=null)
+        {
+            System.out.println(key7 + " = " + convtable_keywordIdToUrlId.get(key7));
+        }
+    }
+
     public void close() {
         try {
             if (recman != null) {
@@ -153,26 +164,28 @@ public class BodyInvertedIndex {
         {
             BodyInvertedIndex II = new BodyInvertedIndex();
             II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm");
-//            II.close();
-            System.out.println("body inverted index");
-            RecordManager recman5 = RecordManagerFactory.createRecordManager("projectRM");
-            HTree convtable_keywordIdToUrlIdBody;
-            long recid_bodyInvertedIndex = recman5.getNamedObject("bodyInvertedIndex");
-            if(recid_bodyInvertedIndex != 0)
-            {
-                convtable_keywordIdToUrlIdBody = HTree.load(recman5,recid_bodyInvertedIndex);
-            }
-            else
-            {
-                convtable_keywordIdToUrlIdBody = HTree.createInstance(recman5);
-                recman5.setNamedObject("bodyInvertedIndex",convtable_keywordIdToUrlIdBody.getRecid());
-            }
-            FastIterator it7 = convtable_keywordIdToUrlIdBody.keys();
-            String key7;
-            while((key7 = (String)it7.next())!=null)
-            {
-                System.out.println(key7 + " = " + convtable_keywordIdToUrlIdBody.get(key7));
-            }
+            II.printAll();
+            //II.delete()
+            II.close();
+//            System.out.println("body inverted index");
+//            RecordManager recman5 = RecordManagerFactory.createRecordManager("projectRM");
+//            HTree convtable_keywordIdToUrlIdBody;
+//            long recid_bodyInvertedIndex = recman5.getNamedObject("bodyInvertedIndex");
+//            if(recid_bodyInvertedIndex != 0)
+//            {
+//                convtable_keywordIdToUrlIdBody = HTree.load(recman5,recid_bodyInvertedIndex);
+//            }
+//            else
+//            {
+//                convtable_keywordIdToUrlIdBody = HTree.createInstance(recman5);
+//                recman5.setNamedObject("bodyInvertedIndex",convtable_keywordIdToUrlIdBody.getRecid());
+//            }
+//            FastIterator it7 = convtable_keywordIdToUrlIdBody.keys();
+//            String key7;
+//            while((key7 = (String)it7.next())!=null)
+//            {
+//                System.out.println(key7 + " = " + convtable_keywordIdToUrlIdBody.get(key7));
+//            }
 
         }
         catch(Exception e)
