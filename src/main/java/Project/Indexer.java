@@ -7,6 +7,7 @@ import jdbm.htree.HTree;
 import org.htmlparser.util.ParserException;
 
 import java.io.IOException;
+import java.util.Vector;
 
 public class Indexer {
     private PageSize ps = null;
@@ -18,76 +19,68 @@ public class Indexer {
 
 
 
-    public Indexer() throws IOException
-    {
+    public Indexer() {}
 
+    public void newPageIndex(String url,String urlId) throws IOException, ParserException {
+        StopStem stop_stem = new StopStem();
+        StringExtractor se = new StringExtractor(url);
 
-    }
-    public void indexing(String url,String urlId) throws IOException, ParserException
-    {
-//        if(this.k2i == null)
-        {
-            this.k2i = new Keyword2Id();
-        }
-        this.k2i.addKeywordFromUrl(url);
+        // get title, split, and stop & stem it
+        String title = se.getTitle();
+        Vector<String> processedTitle = stop_stem.stopAndStem(se.splitWord(title));
 
-//        if(this.ps == null)
-        {
-            this.ps = new PageSize();
-        }
-        this.ps.updatePageSize(urlId,url);
+        // get body text, split, and stop & stem it
+        String bodyText = se.getBodyText();
+        Vector<String> processedBodyText = stop_stem.stopAndStem(se.splitWord(bodyText));
 
-//        if(this.urlid2title == null)
-        {
-            this.urlid2title = new UrlId2Title();
-        }
-        this.urlid2title.addUrl(url,urlId);
+        // prepare a vector with all the processed texts
+        Vector<String> allProcessedTexts = new Vector<>();
+        allProcessedTexts.addAll(processedTitle);
+        allProcessedTexts.addAll(processedBodyText);
 
+        // update keyword <=> id conversion tables
+        k2i = new Keyword2Id();
+        k2i.addKeywords(processedTitle);
+        k2i.addKeywords(processedBodyText);
 
-//        if(this.titleInvertedIndex == null)
-        {
-            this.titleInvertedIndex = new TitleInvertedIndex();
-        }
-        this.titleInvertedIndex.update(urlId,url);
-//        if(this.bodyInvertedIndex == null)
-        {
-            this.bodyInvertedIndex = new BodyInvertedIndex();
-        }
-        this.bodyInvertedIndex.update(urlId,url);
+        // add page size
+        ps = new PageSize();
+        ps.addPageSize(urlId, url, bodyText);
 
-//        if(this.forwardIndex == null)
-        {
-            this.forwardIndex = new ForwardIndex();
-        }
-        this.forwardIndex.addUrlId(urlId);
+        // add title
+        urlid2title = new UrlId2Title();
+        urlid2title.addTitle(urlId, title);
 
+        // update forward index
+        forwardIndex = new ForwardIndex();
+        forwardIndex.addEntry(urlId, allProcessedTexts);
 
+        // update inverted indexes
+        titleInvertedIndex = new TitleInvertedIndex();
+        bodyInvertedIndex = new BodyInvertedIndex();
+
+        titleInvertedIndex.addEntry(urlId, processedTitle);
+        bodyInvertedIndex.addEntry(urlId, processedBodyText);
     }
 
-    public static void main(String[] args)
-    {
-        try
-        {
+    public static void main(String[] args) {
+        try {
             HTree convtable_urlToId;
             HTree convtable_idToUrl;
             RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");
+
             long recid_urlToId = recman.getNamedObject("urlToId");
-            if(recid_urlToId != 0)
-            {
+            if(recid_urlToId != 0) {
                 convtable_urlToId = HTree.load(recman,recid_urlToId);
-            }
-            else
-            {
+            } else {
                 convtable_urlToId = HTree.createInstance(recman);
                 recman.setNamedObject("urlToId",convtable_urlToId.getRecid());
             }
+
             long recid_idToUrl = recman.getNamedObject("idToUrl");
-            if(recid_idToUrl != 0)
-            {
+            if(recid_idToUrl != 0) {
                 convtable_idToUrl = HTree.load(recman,recid_idToUrl);
-            }
-            else
-            {
+            } else {
                 convtable_idToUrl = HTree.createInstance(recman);
                 recman.setNamedObject("idToUrl",convtable_idToUrl.getRecid());
             }
@@ -96,43 +89,39 @@ public class Indexer {
             convtable_idToUrl.put("testid","https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm");
             convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm","testid2");
             convtable_idToUrl.put("testid2","https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm");
-//            convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
-//            convtable_idToUrl.put("testid3","https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm");
+            convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
+            convtable_idToUrl.put("testid3","https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm");
             recman.commit();
 
 
             Indexer indexer = new Indexer();
-            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm","testid");
-            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm","testid2");
-//            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
+            indexer.newPageIndex("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm","testid");
+            indexer.newPageIndex("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm","testid2");
+            indexer.newPageIndex("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
 
 
             FastIterator it1 = convtable_urlToId.keys();
             String key1;
-            while((key1 = (String)it1.next())!=null)
-            {
+            while((key1 = (String)it1.next())!=null) {
                 System.out.println(key1 + " = " + convtable_urlToId.get(key1));
             }
 
             FastIterator it2 = convtable_idToUrl.keys();
             String key2;
-            while((key2 = (String)it2.next())!=null)
-            {
+            while((key2 = (String)it2.next())!=null) {
                 System.out.println(key2 + " = " + convtable_idToUrl.get(key2));
             }
             //test pageSize
             RecordManager recman2 = RecordManagerFactory.createRecordManager("projectRM");
             HTree convtable_pageSize;
             long recid_pageSize = recman2.getNamedObject("pageSizeIndex");
-            if(recid_pageSize != 0)
-            {
+            if(recid_pageSize != 0) {
                 convtable_pageSize = HTree.load(recman2,recid_pageSize);
-            }
-            else
-            {
+            } else {
                 convtable_pageSize = HTree.createInstance(recman2);
                 recman2.setNamedObject("pageSizeIndex",convtable_pageSize.getRecid());
             }
+
             FastIterator it = convtable_pageSize.keys();
             String size = "";
             while((size=(String)it.next())!=null)
@@ -257,10 +246,6 @@ public class Indexer {
             {
                 System.out.println(key7 + " = " + convtable_keywordIdToUrlIdBody.get(key7));
             }
-
-
-
-
             recman.commit();
 //            recman.close();
 

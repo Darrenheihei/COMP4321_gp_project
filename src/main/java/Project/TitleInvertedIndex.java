@@ -11,9 +11,8 @@ import java.util.HashMap;
 import java.util.Vector;
 public class TitleInvertedIndex {
     private RecordManager recman;
-    private HTree convtable_keywordIdToUrlId; //HTree map urlId with the number of keywords to keywordId
-    private Keyword2Id k2i;
-
+    private HTree invertedIndex; //HTree map urlId with the number of keywords to keywordId, key: keywordId, value: <urlId1>:<freq> <urlId2>:<freq> ...
+    private HTree k2i;
 
     /**
      * The constructor of InvertedIndex
@@ -22,233 +21,65 @@ public class TitleInvertedIndex {
     {
         recman = RecordManagerFactory.createRecordManager("projectRM");
         long recid_urlId2KeywordId = recman.getNamedObject("titleInvertedIndex");
-        if(recid_urlId2KeywordId != 0)
-        {
-            convtable_keywordIdToUrlId = HTree.load(recman,recid_urlId2KeywordId);
-        }
-        else
-        {
-            convtable_keywordIdToUrlId = HTree.createInstance(recman);
-            recman.setNamedObject("titleInvertedIndex",convtable_keywordIdToUrlId.getRecid());
+        if(recid_urlId2KeywordId != 0) {
+            invertedIndex = HTree.load(recman,recid_urlId2KeywordId);
+        } else {
+            invertedIndex = HTree.createInstance(recman);
+            recman.setNamedObject("titleInvertedIndex",invertedIndex.getRecid());
         }
 
-        k2i = new Keyword2Id();
+        //handle keyword to id
+        long recid_key2id = recman.getNamedObject("keywordToId");
+        if(recid_key2id != 0) {
+            k2i = HTree.load(recman,recid_key2id);
+        } else {
+            k2i = HTree.createInstance(recman);
+            recman.setNamedObject("keywordToId",k2i.getRecid());
+        }
     }
 
     /**
      * This function extract TITLE keyword from a webpage and insert all keywords to inverted table
-     * @param urlId the id that correspond to the webpage
-     * @param url the actual url coresspond to urlId
      */
-    public void update(String urlId, String url) throws IOException, ParserException { //include add new word AND update existed word from a document
-        //updateConvtableIdToUrl(urlId, url);
-        StringExtractor se = new StringExtractor(url);
-        Vector<String> v;
-        v = se.getTitleArray();
-        StopStem stop_stem = new StopStem();
-        v = stop_stem.stopAndStem(v);
-
-//        for(String str: v)
-//        {
-//            //String id = forward_index.getK2i().getId(str); //covert keyword to id, not used
-//            String keyword_id = k2i.getId(str);
-//
-//            //System.out.println("this string is " + str);
-//            if(convtable_keywordIdToUrlId.get(keyword_id) != null){ //the keyword exist in the inverted file already
-//                String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();
-//                String[] url_array = url_list.split(" ");
-//                String new_keyword_list = "";
-//
-//                boolean urlInList = false; //it is possible that the url id need to be appended in the end
-//
-//                for (int i = 0; i < url_array.length; i += 2) { //loop over the url list to see whether the url exist,
-//                    if (url_array[i].equals(urlId)) { //If existed, add 1
-//                        new_keyword_list += url_array[i] + " " + (Integer.parseInt(url_array[i+1]) + 1) + " ";
-//                        //System.out.println("testing");
-//                        urlInList = true;
-//                    }
-//                    else{
-//                        new_keyword_list += url_array[i] + " " + url_array[i+1] + " ";
-//                    }
-//                }
-//
-//                if(!urlInList){ //appned url id in the end with the number of keyword
-//                    new_keyword_list += urlId + " " + "1";
-//                }
-//                new_keyword_list = new_keyword_list.trim(); //remove whitespace in the end of string
-//                convtable_keywordIdToUrlId.put(keyword_id, new_keyword_list);
-//            }
-//            else{//the keyword does not exist in the inverted file
-//                String new_keyword_list = urlId + " " + "1";
-//                convtable_keywordIdToUrlId.put(keyword_id, new_keyword_list);
-//            }
-//
-//            //System.out.println(str + " : " + convtable_keywordIdToUrlId.get(keyword_id));
-//
-//
-//            recman.commit();
-//        }
+    public void addEntry(String urlId, Vector<String> title) throws IOException { //include add new word AND update existed word from a document
         HashMap<String, Integer> hashMap = new HashMap<>();
-        for(String str: v)
-        {
-            if(hashMap.get(str) == null)
-            {
-                hashMap.put(str,1);
-            }
-            else
-            {
-                int fre = hashMap.get(str);
-                hashMap.put(str, fre+1);
+        for(String str: title) {
+            if(hashMap.get(str) == null) {
+                hashMap.put(str, 1);
+            } else {
+                int freq = hashMap.get(str);
+                hashMap.put(str, freq + 1);
             }
         }
 
-        for(String keyword: hashMap.keySet())
-        {
-            String keywordId = this.k2i.getId(keyword);
-            if(this.convtable_keywordIdToUrlId.get(keywordId)!=null)
-            {
-                String longStr = this.convtable_keywordIdToUrlId.get(keywordId).toString();
-                if(longStr.contains(urlId))
-                {
-                    String[] strArray = longStr.split(" ");
-                    String newStr = "";
-                    for(int i=0; i < strArray.length;i+=2)
-                    {
-                        if(strArray[i].equals(urlId))
-                        {
-                            newStr = newStr+urlId+" "+hashMap.get(keyword)+" ";
-                        }
-                        else
-                        {
-                            newStr = newStr+strArray[i]+" "+strArray[i+1]+" ";
-                        }
-                    }
-                    this.convtable_keywordIdToUrlId.put(keywordId,newStr);
-                }
-                else
-                {
+        for(String keyword: hashMap.keySet()) {
+            String keywordId = k2i.get(keyword).toString();
 
-                    this.convtable_keywordIdToUrlId.put(keywordId,longStr+urlId+" "+hashMap.get(keyword).toString()+" ");
-                }
-
+            String longStr = "";
+            if(invertedIndex.get(keywordId)!=null) { // already have such keyword
+                longStr = invertedIndex.get(keywordId).toString();
             }
-            else
-            {
 
-                this.convtable_keywordIdToUrlId.put(keywordId,urlId+" "+hashMap.get(keyword).toString()+" ");
-            }
-            System.out.println(keyword);
+            invertedIndex.put(keywordId, longStr + urlId + ":" + hashMap.get(keyword) + " ");
         }
         recman.commit();
     }
 
-    /**
-     * This function remove all the TITLE keywords record of the url
-     * @param urlId the id that correspond to the webpage that you want to remove from the index
-     * @param keywordsId the whole string containing all stemmed keywords. e.g "compu hello new", suppose can be gotten from ForwardIndex
-     */
-    public void delete(String urlId, String keywordsId) throws IOException{
-        //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
-        if(keywordsId != null){ //all keywords from the webpage
-            String[] keywordIdArray = keywordsId.split(" ");
-
-            for(String keyword_id : keywordIdArray){
-                //String keyword_id = k2i.getId(keyword);
-                if(convtable_keywordIdToUrlId.get(keyword_id) != null){
-                    String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
-                    String[] url_array = url_list.split(" ");
-                    String new_url_list = "";
-                    for(int i = 0;i < url_array.length; i += 2){
-                        if(!url_array[i].equals(urlId)){ //skip the url id that want to be removed
-                            new_url_list += url_array[i] + " " + url_array[i+1] + " ";
-                        }
-                    }
-
-                    new_url_list = new_url_list.trim();
-                    if(new_url_list.isEmpty()){
-                        convtable_keywordIdToUrlId.remove(keyword_id);
-                    }
-                    else {
-                        convtable_keywordIdToUrlId.put(keyword_id, new_url_list);
-                    }
-                }
-            }
-        }
-        //forward_index.deleteUrlId(urlId);
-        //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
-
-        recman.commit();
-    }
-
-//    public void delete(String urlId, String keywords) throws IOException{
-//        //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
-//        if(keywords != null){ //all keywords from the webpage
-//            String[] keywordArray = keywords.split(" ");
-//
-//            for(String keyword : keywordArray){
-//                String keyword_id = this.k2i.getId(keyword);
-//                //System.out.println(keyword_id);
-//                //System.out.println(convtable_keywordIdToUrlId.get(keyword));
-//                if(convtable_keywordIdToUrlId.get(keyword_id) != null){
-//                    //System.out.println("convtable_keywordIdToUrlId.get(keyword) is not null");
-//                    String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
-//                    String[] url_array = url_list.split(" ");
-//                    String new_url_list = "";
-//                    for(int i = 0;i < url_array.length; i += 2){
-//                        if(!url_array[i].equals(urlId)){ //skip the url id that want to be removed
-//                            new_url_list += url_array[i] + " " + url_array[i+1] + " ";
-//                        }
-//                    }
-//
-//                    new_url_list = new_url_list.trim();
-//                    //System.out.println(new_url_list);
-//                    if(new_url_list.isEmpty()){
-//                        convtable_keywordIdToUrlId.remove(keyword_id);
-//                    }
-//                    else {
-//                        convtable_keywordIdToUrlId.put(keyword_id, new_url_list);
-//                    }
-//                }
-//            }
-//        }
-//        //forward_index.deleteUrlId(urlId);
-//        //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
-//
-//        recman.commit();
-//    }
-
-    public void printAll() throws IOException {
-        FastIterator it7 = convtable_keywordIdToUrlId.keys();
-        String key7;
-        while((key7 = (String)it7.next())!=null)
-        {
-            System.out.println(key7 + " = " + convtable_keywordIdToUrlId.get(key7));
-        }
-    }
-
-    public void close() {
+    public static void main(String[] args) {
         try {
-            if (recman != null) {
-                recman.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void main(String[] args)
-    {
-        try
-        {
             TitleInvertedIndex II = new TitleInvertedIndex();
-            II.update("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
-            II.printAll();
-            II.delete("123", "test page");
-            II.printAll();
-            II.close();
+            Vector<String> title = new Vector<>();
+            title.add("hello");
+            title.add("hello");
+            II.addEntry("testId", title);
+
+            FastIterator it = II.invertedIndex.keys();
+            String keywordId = "";
+            while((keywordId=(String)it.next())!=null) {
+                System.out.println(keywordId +" -> "+ II.invertedIndex.get(keywordId).toString());
+            }
         }
-        catch(Exception e)
-        {
+        catch(Exception e) {
             e.printStackTrace();
         }
     }

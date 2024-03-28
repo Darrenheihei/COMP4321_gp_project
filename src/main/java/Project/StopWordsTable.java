@@ -15,33 +15,26 @@ import java.io.FileNotFoundException;
 public class StopWordsTable {
     private static StopWordsTable instance = new StopWordsTable();
     private HashSet<String> hashset = new HashSet<>();
-    public StopWordsTable()
-    {
+
+    public StopWordsTable() {
         BufferedReader br = null;
-        try
-        {
+        try {
             FileReader fd = new FileReader("Project/stopwords.txt");
             br = new BufferedReader(fd);
         }
-        catch (FileNotFoundException e)
-        {
+        catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
         String line = null;
-        try
-        {
-            while((line= br.readLine())!=null)
-            {
+        try {
+            while((line= br.readLine())!=null) {
                 hashset.add(line);
             }
-
         }
-        catch(IOException e)
-        {
+        catch(IOException e) {
             e.printStackTrace();
         }
-
     }
 
     /**

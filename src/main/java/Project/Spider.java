@@ -15,6 +15,8 @@ import jdbm.RecordManagerFactory;
 import jdbm.htree.HTree;
 import jdbm.helper.FastIterator;
 import org.htmlparser.filters.TagNameFilter;
+import org.htmlparser.util.ParserException;
+
 import java.net.URLConnection;
 import java.util.Date;
 import java.text.SimpleDateFormat;
@@ -32,6 +34,7 @@ public class Spider {
     private HTree hashtable_modDate; // key is urlID, value is time in millisecond, name: "modDate"
     private HTree hashtable_parentURL; // key is child urlID, value is the parent urlID, name: "parentURL", value is null means no parent page
     private HTree hashtable_childURL; // key is parent urlID, value is all child urlID, name: "childURL", value is null means no fetched child page
+    private Indexer indexer;
 
     public Spider(String url, int _num_pages){
         startUrl = url;
@@ -85,6 +88,8 @@ public class Spider {
                 hashtable_childURL = HTree.createInstance(recman);
                 recman.setNamedObject( "childURL", hashtable_childURL.getRecid() );
             }
+
+            indexer = new Indexer();
         }
         catch(java.io.IOException e){
             e.printStackTrace();
@@ -142,7 +147,8 @@ public class Spider {
                     // save all changes
                     recman.commit();
 
-                    // TODO: update inverted index and forward index
+                    // perform indexing and record other necessary info
+                    indexer.newPageIndex(curLink, id.toString());
 
                     // fetch all links in the current url
                     Vector<String> crawled_links = extractSinglePageLinks(curLink);
@@ -153,25 +159,27 @@ public class Spider {
                             link_queue.offer(url);
                         }
                     }
-                } else if (lastModified > Long.parseLong(hashtable_modDate.get(id).toString())) { // situation 2: already in database, but modification time is later than the recorded time
-                    // update the last modification date
-                    hashtable_modDate.put(id, Long.toString(lastModified));
-
-                    // save all changes
-                    recman.commit();
-
-                    // TODO: update inverted index and forward index
-
-                    // fetch all links in the current url
-                    Vector<String> crawled_links = extractSinglePageLinks(curLink);
-
-                    // add new URLs to link_queue
-                    for (String url:crawled_links){
-                        if (!vec_links.contains(url)){ // it is not in vec_link
-                            link_queue.offer(url);
-                        }
-                    }
                 }
+                // TODO: this is for phase 2
+//                else if (lastModified > Long.parseLong(hashtable_modDate.get(id).toString())) { // situation 2: already in database, but modification time is later than the recorded time
+//                    // update the last modification date
+//                    hashtable_modDate.put(id, Long.toString(lastModified));
+//
+//                    // save all changes
+//                    recman.commit();
+//
+//                    // TODO: update inverted index and forward index
+//
+//                    // fetch all links in the current url
+//                    Vector<String> crawled_links = extractSinglePageLinks(curLink);
+//
+//                    // add new URLs to link_queue
+//                    for (String url:crawled_links){
+//                        if (!vec_links.contains(url)){ // it is not in vec_link
+//                            link_queue.offer(url);
+//                        }
+//                    }
+//                }
             }
 
             // for child pages that are not included in vec_link,
@@ -211,6 +219,9 @@ public class Spider {
             }
         }
         catch (IOException e){
+            e.printStackTrace();
+        }
+        catch (ParserException e) {
             e.printStackTrace();
         }
 

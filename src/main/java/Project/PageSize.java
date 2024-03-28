@@ -24,51 +24,19 @@ public class PageSize {
             convtable_UrlIdToPageSize = HTree.createInstance(recman);
             recman.setNamedObject("pageSizeIndex", convtable_UrlIdToPageSize.getRecid());
         }
-
     }
 
-    public void updatePageSize(String urlId, String url){
+    public void addPageSize(String urlId, String url, String bodyText){
         try {
             URL urll = new URL(url);
             URLConnection connection = urll.openConnection();
             int pageSize = connection.getContentLength();
             if(pageSize == -1){
-                Vector<String> v = new Vector<>();
-                StringBean sb = new StringBean();
-                sb.setLinks(false);
-                sb.setURL(url);
-                String allString = sb.getStrings();
-                pageSize = allString.length();
+                pageSize = bodyText.length();
             }
-                convtable_UrlIdToPageSize.put(urlId, pageSize);
+
+            convtable_UrlIdToPageSize.put(urlId, Integer.toString(pageSize));
             recman.commit();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public int getPageSize(String urlId) throws IOException {
-        if(convtable_UrlIdToPageSize.get(urlId) == null) return 0;
-        return Integer.parseInt(convtable_UrlIdToPageSize.get(urlId).toString());
-    }
-
-    public void printAll() throws IOException
-    {
-        // Print all the data in the hashtable
-        FastIterator it = convtable_UrlIdToPageSize.keys();
-        String key;
-        while((key = (String)it.next())!=null)
-        {
-            System.out.println(key  + " " + convtable_UrlIdToPageSize.get(key));
-        }
-
-    }
-
-    public void close(){
-        try {
-            if (recman != null) {
-                recman.close();
-            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -76,34 +44,28 @@ public class PageSize {
 
     public static void main(String[] args)
     {
-        try
-        {
+        try {
             PageSize II = new PageSize();
-            II.updatePageSize("123", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
-            II.printAll();
-            II.close();
+            String bodyText = "";
+            II.addPageSize("testId", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", bodyText);
 
             RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");
             HTree convtable_pageSize;
             long recid_pageSize = recman.getNamedObject("pageSizeIndex");
-            if(recid_pageSize != 0)
-            {
+            if(recid_pageSize != 0) {
                 convtable_pageSize = HTree.load(recman,recid_pageSize);
-            }
-            else
-            {
+            } else {
                 convtable_pageSize = HTree.createInstance(recman);
                 recman.setNamedObject("pageSizeIndex",convtable_pageSize.getRecid());
             }
+
             FastIterator it = convtable_pageSize.keys();
             String size = "";
-            while((size=(String)it.next())!=null)
-            {
+            while((size=(String)it.next())!=null) {
                 System.out.println(size +" "+ convtable_pageSize.get(size).toString());
             }
         }
-        catch(Exception e)
-        {
+        catch(Exception e) {
             e.printStackTrace();
         }
     }

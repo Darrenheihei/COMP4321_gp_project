@@ -25,11 +25,18 @@ public class Testing {
     public static void main(String[] args){
 //        try {
 //            Spider spider = new Spider("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", 30);
-            Long a = 10l;
-            String b = a.toString();
-            System.out.println(b + 1);
-            Long c = Long.parseLong(b);
-            System.out.println(c + 1);
+        Vector<String> a = new Vector<>();
+        Vector<String> b = new Vector<>();
+        Vector<String> c = new Vector<>();
+        String d = "Hello World\n";
+        a.add("a");
+        b.add("b");
+        c.addAll(a);
+        c.addAll(b);
+        System.out.println(a);
+        System.out.println(b);
+        System.out.println(c);
+        System.out.println(d.length());
 
 
 

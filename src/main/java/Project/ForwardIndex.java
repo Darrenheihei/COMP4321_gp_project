@@ -10,106 +10,54 @@ import java.util.Vector;
 
 public class ForwardIndex {
     public RecordManager recman;
-    public HTree convtable_urlIdToKeywordId;
-    public HTree convtable_idToUrl;
+    public HTree forwardIndex;
+    public HTree convtable_keywordToId; // conversion table: Keyword to ID
 
-    public Keyword2Id k2i;
-
-    public ForwardIndex() throws IOException
-    {
+    public ForwardIndex() throws IOException {
         recman = RecordManagerFactory.createRecordManager("projectRM");
         long recid_urlId2KeywordId = recman.getNamedObject("forwardIndex");
-        if(recid_urlId2KeywordId != 0)
-        {
-            convtable_urlIdToKeywordId = HTree.load(recman,recid_urlId2KeywordId);
-        }
-        else
-        {
-            convtable_urlIdToKeywordId = HTree.createInstance(recman);
-            recman.setNamedObject("forwardIndex",convtable_urlIdToKeywordId.getRecid());
-        }
-
-        long recid_idToUrl = recman.getNamedObject("idToUrl");
-        if (recid_idToUrl != 0){
-            convtable_idToUrl = HTree.load(recman, recid_idToUrl);
+        if(recid_urlId2KeywordId != 0) {
+            forwardIndex = HTree.load(recman,recid_urlId2KeywordId);
         } else {
-            convtable_idToUrl = HTree.createInstance(recman);
-            recman.setNamedObject( "idToUrl", convtable_idToUrl.getRecid() );
+            forwardIndex = HTree.createInstance(recman);
+            recman.setNamedObject("forwardIndex",forwardIndex.getRecid());
         }
 
-
-        k2i = new Keyword2Id();
-    }
-    public void addUrlId(String urlId) throws IOException
-    {
-        if(convtable_urlIdToKeywordId.get(urlId)==null)
-        {
-            String url = convtable_idToUrl.get(urlId).toString();
-            StringExtractor se = new StringExtractor(url);
-            Vector<String> v = se.getAllString(true);
-            StopStem stop_stem = new StopStem();
-            v = stop_stem.stopAndStem(v);
-
-            HashSet<String> hs = new HashSet<>();
-            for(String str:v)
-            {
-                hs.add(str);
-            }
-
-
-            String IDs = "";
-            for(String str:hs)
-            {
-
-                IDs = IDs + k2i.getId(str) + " ";
-            }
-            convtable_urlIdToKeywordId.put(urlId,IDs);
-            recman.commit();
-        }
-
-
-    }
-
-    public String getKeywordId(String urlId) throws IOException
-    {
-        String IDs = convtable_urlIdToKeywordId.get(urlId).toString();
-        return IDs;
-    }
-
-    public void deleteUrlId(String urlId) throws IOException
-    {
-        if(convtable_urlIdToKeywordId.get(urlId)!=null)
-        {
-            convtable_urlIdToKeywordId.remove(urlId);
-            recman.commit();
+        // keyword to id
+        long recid_key2id = recman.getNamedObject("keywordToId");
+        if(recid_key2id != 0) {
+            convtable_keywordToId = HTree.load(recman,recid_key2id);
+        } else {
+            convtable_keywordToId = HTree.createInstance(recman);
+            recman.setNamedObject("keywordToId",convtable_keywordToId.getRecid());
         }
     }
 
-    public void update(String urlId) throws IOException
-    {
-        this.deleteUrlId(urlId);
-        this.addUrlId(urlId);
-    }
+    public void addEntry(String urlId, Vector<String> keywords) throws IOException {
+        HashSet<String> hs = new HashSet<>();
+        for(String keyword:keywords) {
+            hs.add(keyword);
+        }
 
-    public void finalize() throws IOException
-    {
+        String IDs = "";
+        for(String keyword:hs) {
+            IDs += convtable_keywordToId.get(keyword) + " ";
+        }
+
+        forwardIndex.put(urlId, IDs);
         recman.commit();
-        recman.close();
     }
 
-    public static void main(String[] args)
-    {
-        try
-        {
+    public static void main(String[] args) {
+        try {
             ForwardIndex fi = new ForwardIndex();
-            fi.convtable_idToUrl.put("testing urlid","https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
-            fi.addUrlId("testing urlid");
-            System.out.println(fi.convtable_urlIdToKeywordId.get("testing urlid"));
-            fi.deleteUrlId("testing urlid");
-            fi.convtable_idToUrl.remove("testing urlid");
+            Vector<String> keywords = new Vector<>();
+            keywords.add("hello");
+            keywords.add("world");
+            fi.addEntry("testId", keywords);
+            System.out.println(fi.forwardIndex.get("testId"));
         }
-        catch(Exception e)
-        {
+        catch(Exception e) {
             e.printStackTrace();
         }
     }

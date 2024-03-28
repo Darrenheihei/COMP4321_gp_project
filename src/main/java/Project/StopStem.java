@@ -1,27 +1,25 @@
 package Project;
 
+import org.htmlparser.util.ParserException;
+
+import java.util.SortedMap;
 import java.util.Vector;
 
 public class StopStem {
 
     private StopWordsTable swTable = StopWordsTable.getInstance();
-    public StopStem()
-    {
-
-    }
+    public StopStem() {}
 
     /**
      * @param wordList a raw word list before processing
      * @return a Vector of words after removing stop words
      */
-    public Vector<String> removeStopWords(Vector<String> wordList)
+    public Vector<String> removeStopWords(String[] wordList)
     {
         Vector<String> newWordList = new Vector<>();
 
-        for(String str: wordList)
-        {
-            if(!swTable.isStopWords(str))
-            {
+        for(String str: wordList) {
+            if(!swTable.isStopWords(str)) {
                 newWordList.add(str);
             }
         }
@@ -36,8 +34,7 @@ public class StopStem {
     {
         Vector<String> newWordList = new Vector<>();
         Porter porter = new Porter();
-        for(String str:wordList)
-        {
+        for(String str:wordList) {
             String newStr = porter.stripAffixes(str);
             if(newStr.length() > 0)
                 newWordList.add(newStr);
@@ -50,40 +47,25 @@ public class StopStem {
      * @param v raw word list before processing
      * @return word list after removing stop words and stemming
      */
-    public Vector<String> stopAndStem(Vector<String> v)
+    public Vector<String> stopAndStem(String[] v)
     {
         return stem(removeStopWords(v));
     }
 
     public static void main(String[] args)
     {
-        StringExtractor se = new StringExtractor("http://www.cs.ust.hk/~dlee/4321/");
-        Vector<String> v = se.getAllString(true);
-        StopStem stop_stem = new StopStem();
-//        System.out.println("The words before processing: ");
-//        for(int i=0;i<10;i++)
-//        {
-//            System.out.println(v.get(i));
-//        }
-//
-//        v = stop_stem.removeStopWords(v);
-//        System.out.println("The words after removing stopwords: ");
-//        for(int i=0;i<10;i++)
-//        {
-//            System.out.println(v.get(i));
-//        }
-//        v = stop_stem.stem(v);
-//        System.out.println("The words after stemming: ");
-//        for(int i=0;i<10;i++)
-//        {
-//            System.out.println(v.get(i));
-//        }
+        try {
+            StringExtractor se = new StringExtractor("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm");
+            String[] v = se.splitWord(se.getBodyText());
 
-//        v = stop_stem.removeStopWords(v);
-        v = stop_stem.stopAndStem(v);
-        for(String str:v)
-        {
-            System.out.println(str);
+            StopStem stop_stem = new StopStem();
+            Vector<String> result = stop_stem.stopAndStem(v);
+            for (String str : result) {
+                System.out.println(str);
+            }
+        }
+        catch (ParserException e){
+            e.printStackTrace();
         }
 
     }
