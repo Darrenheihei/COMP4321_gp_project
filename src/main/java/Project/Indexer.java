@@ -96,15 +96,15 @@ public class Indexer {
             convtable_idToUrl.put("testid","https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm");
             convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm","testid2");
             convtable_idToUrl.put("testid2","https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm");
-            convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
-            convtable_idToUrl.put("testid3","https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm");
+//            convtable_urlToId.put("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
+//            convtable_idToUrl.put("testid3","https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm");
             recman.commit();
 
 
             Indexer indexer = new Indexer();
-//            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm","testid");
-//            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm","testid2");
-            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
+            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book2.htm","testid");
+            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/books/book1.htm","testid2");
+//            indexer.indexing("https://www.cse.ust.hk/~kwtleung/COMP4321/Movie.htm","testid3");
 
 
             FastIterator it1 = convtable_urlToId.keys();

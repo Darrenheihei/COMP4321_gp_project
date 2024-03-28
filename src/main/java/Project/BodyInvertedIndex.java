@@ -72,9 +72,9 @@ public class BodyInvertedIndex {
                     String newStr = "";
                     for(int i=0; i < strArray.length;i+=2)
                     {
-                        if(strArray[i].equals(keywordId))
+                        if(strArray[i].equals(urlId))
                         {
-                            newStr = newStr+keywordId+" "+hashMap.get(keyword)+" ";
+                            newStr = newStr+urlId+" "+hashMap.get(keyword)+" ";
                         }
                         else
                         {
