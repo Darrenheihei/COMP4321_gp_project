@@ -147,50 +147,14 @@ public class TitleInvertedIndex {
      * @param urlId the id that correspond to the webpage that you want to remove from the index
      * @param keywordsId the whole string containing all stemmed keywords. e.g "compu hello new", suppose can be gotten from ForwardIndex
      */
-//    public void delete(String urlId, String keywordsId) throws IOException{
-//        //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
-//        if(keywordsId != null){ //all keywords from the webpage
-//            String[] keywordIdArray = keywordsId.split(" ");
-//
-//            for(String keyword_id : keywordIdArray){
-//                //String keyword_id = k2i.getId(keyword);
-//                if(convtable_keywordIdToUrlId.get(keyword_id) != null){
-//                    String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
-//                    String[] url_array = url_list.split(" ");
-//                    String new_url_list = "";
-//                    for(int i = 0;i < url_array.length; i += 2){
-//                        if(!url_array[i].equals(urlId)){ //skip the url id that want to be removed
-//                            new_url_list += url_array[i] + " " + url_array[i+1] + " ";
-//                        }
-//                    }
-//
-//                    new_url_list = new_url_list.trim();
-//                    if(new_url_list.isEmpty()){
-//                        convtable_keywordIdToUrlId.remove(keyword_id);
-//                    }
-//                    else {
-//                        convtable_keywordIdToUrlId.put(keyword_id, new_url_list);
-//                    }
-//                }
-//            }
-//        }
-//        //forward_index.deleteUrlId(urlId);
-//        //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
-//
-//        recman.commit();
-//    }
-
-    public void delete(String urlId, String keywords) throws IOException{
+    public void delete(String urlId, String keywordsId) throws IOException{
         //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
-        if(keywords != null){ //all keywords from the webpage
-            String[] keywordArray = keywords.split(" ");
+        if(keywordsId != null){ //all keywords from the webpage
+            String[] keywordIdArray = keywordsId.split(" ");
 
-            for(String keyword : keywordArray){
-                String keyword_id = this.k2i.getId(keyword);
-                //System.out.println(keyword_id);
-                //System.out.println(convtable_keywordIdToUrlId.get(keyword));
+            for(String keyword_id : keywordIdArray){
+                //String keyword_id = k2i.getId(keyword);
                 if(convtable_keywordIdToUrlId.get(keyword_id) != null){
-                    //System.out.println("convtable_keywordIdToUrlId.get(keyword) is not null");
                     String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
                     String[] url_array = url_list.split(" ");
                     String new_url_list = "";
@@ -201,7 +165,6 @@ public class TitleInvertedIndex {
                     }
 
                     new_url_list = new_url_list.trim();
-                    //System.out.println(new_url_list);
                     if(new_url_list.isEmpty()){
                         convtable_keywordIdToUrlId.remove(keyword_id);
                     }
@@ -216,6 +179,43 @@ public class TitleInvertedIndex {
 
         recman.commit();
     }
+
+//    public void delete(String urlId, String keywords) throws IOException{
+//        //String keywords = forward_index.getConvtableUrlIdToKeywordId().get(urlId);
+//        if(keywords != null){ //all keywords from the webpage
+//            String[] keywordArray = keywords.split(" ");
+//
+//            for(String keyword : keywordArray){
+//                String keyword_id = this.k2i.getId(keyword);
+//                //System.out.println(keyword_id);
+//                //System.out.println(convtable_keywordIdToUrlId.get(keyword));
+//                if(convtable_keywordIdToUrlId.get(keyword_id) != null){
+//                    //System.out.println("convtable_keywordIdToUrlId.get(keyword) is not null");
+//                    String url_list = convtable_keywordIdToUrlId.get(keyword_id).toString();//get all the urlId corresponding to the keyword
+//                    String[] url_array = url_list.split(" ");
+//                    String new_url_list = "";
+//                    for(int i = 0;i < url_array.length; i += 2){
+//                        if(!url_array[i].equals(urlId)){ //skip the url id that want to be removed
+//                            new_url_list += url_array[i] + " " + url_array[i+1] + " ";
+//                        }
+//                    }
+//
+//                    new_url_list = new_url_list.trim();
+//                    //System.out.println(new_url_list);
+//                    if(new_url_list.isEmpty()){
+//                        convtable_keywordIdToUrlId.remove(keyword_id);
+//                    }
+//                    else {
+//                        convtable_keywordIdToUrlId.put(keyword_id, new_url_list);
+//                    }
+//                }
+//            }
+//        }
+//        //forward_index.deleteUrlId(urlId);
+//        //forward_index.getConvtableIdToUrl().remove("testing urlid"); //should be from darren
+//
+//        recman.commit();
+//    }
 
     public void printAll() throws IOException {
         FastIterator it7 = convtable_keywordIdToUrlId.keys();
