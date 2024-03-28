@@ -9,7 +9,7 @@ import org.htmlparser.util.ParserException;
 import java.io.IOException;
 import java.util.Vector;
 public class BodyInvertedIndex {
-    private RecordManager recman;
+    private static RecordManager recman;
     private HTree convtable_keywordIdToUrlId; //HTree map urlId with the number of keywords to keywordId
     private HTree bodyIndex_UrlIdRecord;
     private Keyword2Id k2i;
@@ -149,6 +149,13 @@ public class BodyInvertedIndex {
         recman.commit();
     }
 
+    public static RecordManager getRecordManager() throws IOException {
+        if (recman == null) {
+            recman = RecordManagerFactory.createRecordManager("projectRM");
+        }
+        return recman;
+    }
+
     public void printAll() throws IOException
     {
         // Print all the data in the hashtable
@@ -181,6 +188,7 @@ public class BodyInvertedIndex {
             //II.close();
 
             RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");
+            //RecordManager recman = BodyInvertedIndex.getRecordManager();
 
             HTree convtable_keywordIdToUrlIdBody;
             long recid_bodyInvertedIndex = recman.getNamedObject("bodyInvertedIndex");
