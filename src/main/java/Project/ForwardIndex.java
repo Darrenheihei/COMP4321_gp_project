@@ -59,7 +59,7 @@ public class ForwardIndex {
 //        }
         System.out.println(hs);
         for(String keyword:hs) {
-            System.out.println(keyword + " " + convtable_keywordToId.get("test"));
+            System.out.println(keyword + " " + convtable_keywordToId.get(keyword));
             IDs += convtable_keywordToId.get(keyword) + " ";
 //            System.out.println("ID: " + IDs);
         }
