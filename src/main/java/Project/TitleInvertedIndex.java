@@ -10,31 +10,39 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Vector;
 public class TitleInvertedIndex {
-    private RecordManager recman;
-    private HTree invertedIndex; //HTree map urlId with the number of keywords to keywordId, key: keywordId, value: <urlId1>:<freq> <urlId2>:<freq> ...
-    private HTree k2i;
+    private static RecordManager recman;
+    private static HTree invertedIndex; //HTree map urlId with the number of keywords to keywordId, key: keywordId, value: <urlId1>:<freq> <urlId2>:<freq> ...
+    private static HTree k2i;
 
     /**
      * The constructor of InvertedIndex
      */
-    public TitleInvertedIndex() throws IOException
-    {
-        recman = RecordManagerFactory.createRecordManager("projectRM");
-        long recid_urlId2KeywordId = recman.getNamedObject("titleInvertedIndex");
-        if(recid_urlId2KeywordId != 0) {
-            invertedIndex = HTree.load(recman,recid_urlId2KeywordId);
-        } else {
-            invertedIndex = HTree.createInstance(recman);
-            recman.setNamedObject("titleInvertedIndex",invertedIndex.getRecid());
-        }
+    public TitleInvertedIndex() {
+        updateHtrees();
+    }
 
-        //handle keyword to id
-        long recid_key2id = recman.getNamedObject("keywordToId");
-        if(recid_key2id != 0) {
-            k2i = HTree.load(recman,recid_key2id);
-        } else {
-            k2i = HTree.createInstance(recman);
-            recman.setNamedObject("keywordToId",k2i.getRecid());
+    private void updateHtrees(){
+        try {
+            recman = RecordManagerFactory.createRecordManager("projectRM");
+            long recid_urlId2KeywordId = recman.getNamedObject("titleInvertedIndex");
+            if (recid_urlId2KeywordId != 0) {
+                invertedIndex = HTree.load(recman, recid_urlId2KeywordId);
+            } else {
+                invertedIndex = HTree.createInstance(recman);
+                recman.setNamedObject("titleInvertedIndex", invertedIndex.getRecid());
+            }
+
+            //handle keyword to id
+            long recid_key2id = recman.getNamedObject("keywordToId");
+            if (recid_key2id != 0) {
+                k2i = HTree.load(recman, recid_key2id);
+            } else {
+                k2i = HTree.createInstance(recman);
+                recman.setNamedObject("keywordToId", k2i.getRecid());
+            }
+        }
+        catch (IOException e){
+            e.printStackTrace();
         }
     }
 
@@ -52,6 +60,7 @@ public class TitleInvertedIndex {
             }
         }
 
+        updateHtrees();
         for(String keyword: hashMap.keySet()) {
             String keywordId = k2i.get(keyword).toString();
 

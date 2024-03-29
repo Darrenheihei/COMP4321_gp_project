@@ -8,17 +8,21 @@ import jdbm.htree.HTree;
 import java.io.IOException;
 
 public class TestProgram {
-    private RecordManager recman;
-    private HTree convtable_idToUrl;
-    private HTree id2title;
-    private HTree id2date;
-    private HTree id2size;
-    private HTree titleInvertedIndex;
-    private HTree bodyInvertedIndex;
-    private HTree forwardIndex;
-    private HTree id2childUrl;
+    private static RecordManager recman;
+    private static HTree convtable_idToUrl;
+    private static HTree id2title;
+    private static HTree id2date;
+    private static HTree id2size;
+    private static HTree titleInvertedIndex;
+    private static HTree bodyInvertedIndex;
+    private static HTree forwardIndex;
+    private static HTree id2childUrl;
 
     public TestProgram() {
+        updateHtrees();
+    }
+
+    private void updateHtrees() {
         try {
             // create record manager
             recman = RecordManagerFactory.createRecordManager("projectRM");
@@ -43,59 +47,59 @@ public class TestProgram {
 
             // get record id of the object named "modDate"
             recid = recman.getNamedObject("modDate");
-            if (recid != 0){
+            if (recid != 0) {
                 id2date = HTree.load(recman, recid);
             } else {
                 id2date = HTree.createInstance(recman);
-                recman.setNamedObject( "modDate", id2date.getRecid() );
+                recman.setNamedObject("modDate", id2date.getRecid());
             }
 
             // get record id of the object named "pageSizeIndex"
             recid = recman.getNamedObject("pageSizeIndex");
-            if (recid != 0){
+            if (recid != 0) {
                 id2size = HTree.load(recman, recid);
             } else {
                 id2size = HTree.createInstance(recman);
-                recman.setNamedObject( "pageSizeIndex", id2size.getRecid() );
+                recman.setNamedObject("pageSizeIndex", id2size.getRecid());
             }
 
             // get record id of the object named "titleInvertedIndex"
             recid = recman.getNamedObject("titleInvertedIndex");
-            if (recid != 0){
+            if (recid != 0) {
                 titleInvertedIndex = HTree.load(recman, recid);
             } else {
                 titleInvertedIndex = HTree.createInstance(recman);
-                recman.setNamedObject( "titleInvertedIndex", titleInvertedIndex.getRecid() );
+                recman.setNamedObject("titleInvertedIndex", titleInvertedIndex.getRecid());
             }
 
             // get record id of the object named "bodyInvertedIndex"
             recid = recman.getNamedObject("bodyInvertedIndex");
-            if (recid != 0){
+            if (recid != 0) {
                 bodyInvertedIndex = HTree.load(recman, recid);
             } else {
                 bodyInvertedIndex = HTree.createInstance(recman);
-                recman.setNamedObject( "bodyInvertedIndex", bodyInvertedIndex.getRecid() );
+                recman.setNamedObject("bodyInvertedIndex", bodyInvertedIndex.getRecid());
             }
 
             // get record id of the object named "forwardIndex"
             recid = recman.getNamedObject("forwardIndex");
-            if (recid != 0){
+            if (recid != 0) {
                 forwardIndex = HTree.load(recman, recid);
             } else {
                 forwardIndex = HTree.createInstance(recman);
-                recman.setNamedObject( "forwardIndex", forwardIndex.getRecid() );
+                recman.setNamedObject("forwardIndex", forwardIndex.getRecid());
             }
 
             // get record id of the object named "childURL"
             recid = recman.getNamedObject("childURL");
-            if (recid != 0){
+            if (recid != 0) {
                 id2childUrl = HTree.load(recman, recid);
             } else {
                 id2childUrl = HTree.createInstance(recman);
-                recman.setNamedObject( "childURL", id2childUrl.getRecid() );
+                recman.setNamedObject("childURL", id2childUrl.getRecid());
             }
         }
-        catch (IOException e) {
+        catch (IOException e){
             e.printStackTrace();
         }
     }

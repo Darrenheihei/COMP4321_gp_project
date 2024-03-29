@@ -12,17 +12,26 @@ import java.net.URLConnection;
 import java.util.Vector;
 
 public class PageSize {
-    private RecordManager recman;
-    private HTree convtable_UrlIdToPageSize; //HTree map urlId to page size
+    private static RecordManager recman;
+    private static HTree convtable_UrlIdToPageSize; //HTree map urlId to page size
 
-    public PageSize() throws IOException {
-        recman = RecordManagerFactory.createRecordManager("projectRM");
-        long recid_urlId2KeywordId = recman.getNamedObject("pageSizeIndex");
-        if (recid_urlId2KeywordId != 0) {
-            convtable_UrlIdToPageSize = HTree.load(recman, recid_urlId2KeywordId);
-        } else {
-            convtable_UrlIdToPageSize = HTree.createInstance(recman);
-            recman.setNamedObject("pageSizeIndex", convtable_UrlIdToPageSize.getRecid());
+    public PageSize() {
+        updateHrees();
+    }
+
+    private void updateHrees() {
+        try {
+            recman = RecordManagerFactory.createRecordManager("projectRM");
+            long recid_urlId2KeywordId = recman.getNamedObject("pageSizeIndex");
+            if (recid_urlId2KeywordId != 0) {
+                convtable_UrlIdToPageSize = HTree.load(recman, recid_urlId2KeywordId);
+            } else {
+                convtable_UrlIdToPageSize = HTree.createInstance(recman);
+                recman.setNamedObject("pageSizeIndex", convtable_UrlIdToPageSize.getRecid());
+            }
+        }
+        catch (IOException e){
+            e.printStackTrace();
         }
     }
 

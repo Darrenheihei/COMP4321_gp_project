@@ -14,8 +14,8 @@ public class Indexer {
     private UrlId2Title urlid2title = null;
     private Keyword2Id k2i = null;
     private ForwardIndex forwardIndex = null;
-    private  TitleInvertedIndex titleInvertedIndex = null;
-    private  BodyInvertedIndex bodyInvertedIndex = null;
+    private TitleInvertedIndex titleInvertedIndex = null;
+    private BodyInvertedIndex bodyInvertedIndex = null;
 
 
 
@@ -42,8 +42,7 @@ public class Indexer {
         if (k2i == null) {
             k2i = new Keyword2Id();
         }
-        k2i.addKeywords(processedTitle);
-        k2i.addKeywords(processedBodyText);
+        k2i.addKeywords(allProcessedTexts);
 
         // add page size
         if (ps == null) {
@@ -72,7 +71,7 @@ public class Indexer {
         }
 
         titleInvertedIndex.addEntry(urlId, processedTitle);
-        System.out.println(processedBodyText);
+//        System.out.println(processedBodyText);
         bodyInvertedIndex.addEntry(urlId, processedBodyText);
     }
 

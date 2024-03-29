@@ -28,20 +28,24 @@ public class Spider {
     private String startUrl;
     private int num_pages;
 
-    private RecordManager recman;
-    private HTree convtable_urlToId; // conversion table: URL to ID, name: "urlToId"
-    private HTree convtable_idToUrl; // conversion table: ID to URL, name: "idToUrl"
-    private HTree hashtable_modDate; // key is urlID, value is time in millisecond, name: "modDate"
-    private HTree hashtable_parentURL; // key is child urlID, value is the parent urlID, name: "parentURL", value is null means no parent page
-    private HTree hashtable_childURL; // key is parent urlID, value is all child urlID, name: "childURL", value is null means no fetched child page
-    private HTree hashtable_fetchedUrl; // key is urlId, value is Url, only contains fetched pages
+    private static RecordManager recman;
+    private static HTree convtable_urlToId; // conversion table: URL to ID, name: "urlToId"
+    private static HTree convtable_idToUrl; // conversion table: ID to URL, name: "idToUrl"
+    private static HTree hashtable_modDate; // key is urlID, value is time in millisecond, name: "modDate"
+    private static HTree hashtable_parentURL; // key is child urlID, value is the parent urlID, name: "parentURL", value is null means no parent page
+    private static HTree hashtable_childURL; // key is parent urlID, value is all child urlID, name: "childURL", value is null means no fetched child page
+    private static HTree hashtable_fetchedUrl; // key is urlId, value is Url, only contains fetched pages
     private Indexer indexer;
-
 
     public Spider(String url, int _num_pages){
         startUrl = url;
         num_pages = _num_pages;
 
+        updateHtrees();
+        indexer = new Indexer();
+    }
+
+    private void updateHtrees(){
         try {
             // create record manager
             recman = RecordManagerFactory.createRecordManager("projectRM");
@@ -99,8 +103,6 @@ public class Spider {
                 hashtable_fetchedUrl = HTree.createInstance(recman);
                 recman.setNamedObject( "fetchedUrl", hashtable_fetchedUrl.getRecid() );
             }
-
-            indexer = new Indexer();
         }
         catch(java.io.IOException e){
             e.printStackTrace();
@@ -143,6 +145,7 @@ public class Spider {
 
 
                 // get the id of the current url
+                updateHtrees();
                 Object id = convtable_urlToId.get(curLink); // added toString() here because the IDE doesn't know the object being stored is string so it will display an error, which looks bad
 
                 // start to check different conditions
@@ -159,6 +162,7 @@ public class Spider {
                     recman.commit();
 
                     // perform indexing and record other necessary info
+                    updateHtrees();
                     System.out.println("\nlink " + vec_links.size() + " " + convtable_idToUrl.get(id));
                     indexer.newPageIndex(curLink, id.toString());
 
@@ -207,6 +211,7 @@ public class Spider {
             recman.commit();
 
             // update the childID and parentID hash tables
+            updateHtrees();
             for (String parentUrl: vec_links){
                 Object parentId = convtable_urlToId.get(parentUrl);
                 String childIds = "";
@@ -216,9 +221,6 @@ public class Spider {
                 for (String childUrl: childURLs){
                     Object childId = convtable_urlToId.get(childUrl);
                     childIds += childId + " ";
-                    if (childId == null){
-                        System.out.println("ChildID error");
-                    }
 
                     // update parentURL
                     hashtable_parentURL.put(childId, parentId);
@@ -236,6 +238,7 @@ public class Spider {
             recman.commit();
 
             // get a vector of ID of fetched pages
+            updateHtrees();
             for (String link:vec_links){
                 vec_links_id.add(convtable_urlToId.get(link).toString());
             }
