@@ -34,7 +34,9 @@ public class Spider {
     private HTree hashtable_modDate; // key is urlID, value is time in millisecond, name: "modDate"
     private HTree hashtable_parentURL; // key is child urlID, value is the parent urlID, name: "parentURL", value is null means no parent page
     private HTree hashtable_childURL; // key is parent urlID, value is all child urlID, name: "childURL", value is null means no fetched child page
+    private HTree hashtable_fetchedUrl; // key is urlId, value is Url, only contains fetched pages
     private Indexer indexer;
+
 
     public Spider(String url, int _num_pages){
         startUrl = url;
@@ -87,6 +89,15 @@ public class Spider {
             } else {
                 hashtable_childURL = HTree.createInstance(recman);
                 recman.setNamedObject( "childURL", hashtable_childURL.getRecid() );
+            }
+
+            // get record id of the object named "fetchedUrl"
+            recid = recman.getNamedObject("fetchedUrl");
+            if (recid != 0){
+                hashtable_fetchedUrl = HTree.load(recman, recid);
+            } else {
+                hashtable_fetchedUrl = HTree.createInstance(recman);
+                recman.setNamedObject( "fetchedUrl", hashtable_fetchedUrl.getRecid() );
             }
 
             indexer = new Indexer();
@@ -148,6 +159,7 @@ public class Spider {
                     recman.commit();
 
                     // perform indexing and record other necessary info
+                    System.out.println("\nlink " + vec_links.size() + " " + convtable_idToUrl.get(id));
                     indexer.newPageIndex(curLink, id.toString());
 
                     // fetch all links in the current url
@@ -192,6 +204,8 @@ public class Spider {
                 convtable_idToUrl.put(id, curLink);
             }
 
+            recman.commit();
+
             // update the childID and parentID hash tables
             for (String parentUrl: vec_links){
                 Object parentId = convtable_urlToId.get(parentUrl);
@@ -202,12 +216,20 @@ public class Spider {
                 for (String childUrl: childURLs){
                     Object childId = convtable_urlToId.get(childUrl);
                     childIds += childId + " ";
+                    if (childId == null){
+                        System.out.println("ChildID error");
+                    }
 
                     // update parentURL
                     hashtable_parentURL.put(childId, parentId);
                 }
                 // update childURL
                 hashtable_childURL.put(parentId, childIds);
+            }
+
+            // update fetchUrl
+            for(String url:vec_links){
+                hashtable_fetchedUrl.put(convtable_urlToId.get(url).toString(), url);
             }
 
             // save all changes
@@ -230,28 +252,30 @@ public class Spider {
 
     public static void main(String[] args){
         try {
+            System.out.println("Start Fetching...");
             Spider spider = new Spider("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", 30);
             Vector<String> links = spider.extractLinks();
+            System.out.println("Finish Fetching");
             System.out.println("Number of links: " + links.size());
             for(int i = 0; i < links.size(); i++){
                 System.out.println(links.get(i));
             }
 
-            System.out.println();
-            String parent = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm";
-            String parentId = spider.convtable_urlToId.get(parent).toString();
-            String[] childIds = spider.hashtable_childURL.get(parentId).toString().split(" ");
-            System.out.println(spider.convtable_idToUrl.get(spider.hashtable_parentURL.get(parentId)));
-            System.out.println();
-            for (String childId:childIds){
-                System.out.println(spider.convtable_idToUrl.get(childId));
-                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Date date = new Date(Long.parseLong(spider.hashtable_modDate.get(childId).toString()));
-                String formattedDate = formatter.format(date);
-                System.out.println(formattedDate);
-                System.out.println(spider.convtable_idToUrl.get(spider.hashtable_parentURL.get(childId)));
-
-            }
+//            System.out.println();
+//            String parent = "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm";
+//            String parentId = spider.convtable_urlToId.get(parent).toString();
+//            String[] childIds = spider.hashtable_childURL.get(parentId).toString().split(" ");
+//            System.out.println(spider.convtable_idToUrl.get(spider.hashtable_parentURL.get(parentId)));
+//            System.out.println();
+//            for (String childId:childIds){
+//                System.out.println(spider.convtable_idToUrl.get(childId));
+//                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//                Date date = new Date(Long.parseLong(spider.hashtable_modDate.get(childId).toString()));
+//                String formattedDate = formatter.format(date);
+//                System.out.println(formattedDate);
+//                System.out.println(spider.convtable_idToUrl.get(spider.hashtable_parentURL.get(childId)));
+//
+//            }
 //            FastIterator iter1 = spider.convtable_urlToId.keys();
 //            FastIterator iter2 = spider.convtable_idToUrl.keys();
 //            String key;
@@ -279,9 +303,6 @@ public class Spider {
         }
         catch (ParseException e) {
             e.printStackTrace();
-        }
-        catch (IOException ex) {
-            ex.printStackTrace();
         }
 
     }

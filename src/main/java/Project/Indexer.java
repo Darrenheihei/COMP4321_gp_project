@@ -39,27 +39,40 @@ public class Indexer {
         allProcessedTexts.addAll(processedBodyText);
 
         // update keyword <=> id conversion tables
-        k2i = new Keyword2Id();
+        if (k2i == null) {
+            k2i = new Keyword2Id();
+        }
         k2i.addKeywords(processedTitle);
         k2i.addKeywords(processedBodyText);
 
         // add page size
-        ps = new PageSize();
+        if (ps == null) {
+            ps = new PageSize();
+        }
         ps.addPageSize(urlId, url, bodyText);
 
         // add title
-        urlid2title = new UrlId2Title();
+        if (urlid2title == null) {
+            urlid2title = new UrlId2Title();
+        }
         urlid2title.addTitle(urlId, title);
 
         // update forward index
-        forwardIndex = new ForwardIndex();
+        if (forwardIndex == null) {
+            forwardIndex = new ForwardIndex();
+        }
         forwardIndex.addEntry(urlId, allProcessedTexts);
 
         // update inverted indexes
-        titleInvertedIndex = new TitleInvertedIndex();
-        bodyInvertedIndex = new BodyInvertedIndex();
+        if (titleInvertedIndex == null) {
+            titleInvertedIndex = new TitleInvertedIndex();
+        }
+        if (bodyInvertedIndex == null) {
+            bodyInvertedIndex = new BodyInvertedIndex();
+        }
 
         titleInvertedIndex.addEntry(urlId, processedTitle);
+        System.out.println(processedBodyText);
         bodyInvertedIndex.addEntry(urlId, processedBodyText);
     }
 

@@ -5,6 +5,7 @@ import jdbm.RecordManagerFactory;
 import jdbm.helper.FastIterator;
 import jdbm.htree.HTree;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.Vector;
@@ -36,14 +37,23 @@ public class Keyword2Id {
     }
 
     public void addKeywords(Vector<String> keywords) throws IOException {
+        System.out.println("Keyword received: " + keywords);
         for (String keyword:keywords) {
             if (convtable_keywordToId.get(keyword) == null) {
                 String newId = UUID.randomUUID().toString();
                 convtable_keywordToId.put(keyword, newId);
                 convtable_idToKeyword.put(newId, keyword);
                 recman.commit();
+                System.out.println("Keyword added: " + keyword + " <=> " + convtable_keywordToId.get(keyword));
             }
         }
+
+        FastIterator it = convtable_keywordToId.keys();
+        String a;
+        while( (a = (String)it.next())!=null) {
+            System.out.println("Found(immediately): " + a);
+        }
+        System.out.println();
     }
 
     static public void main(String[] args)
@@ -54,8 +64,14 @@ public class Keyword2Id {
             Vector<String> keywords = new Vector<>();
             keywords.add("hello");
             keywords.add("world");
-
+            System.out.println("First call");
             k2i.addKeywords(keywords);
+
+            Vector<String> keywords2 = new Vector<>();
+            keywords2.add("comp");
+            keywords2.add("4211");
+            System.out.println("Second call");
+            k2i.addKeywords(keywords2);
 
 
             RecordManager recman = RecordManagerFactory.createRecordManager("projectRM");

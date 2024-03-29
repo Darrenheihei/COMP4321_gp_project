@@ -50,9 +50,16 @@ public class BodyInvertedIndex {
                 hashMap.put(str, freq + 1);
             }
         }
+        FastIterator it = k2i.keys();
+        String a;
+        while( (a = (String)it.next())!=null) {
+            System.out.println("Found: " + a);
+        }
 
         for(String keyword: hashMap.keySet()) {
-            String keywordId = k2i.get(keyword).toString();
+            System.out.println("word: " + keyword);
+            Object keywordId = k2i.get(keyword);
+            System.out.println("ID: " + keywordId);
 
             String longStr = "";
             if(invertedIndex.get(keywordId)!=null) { // already have such keyword
