@@ -33,9 +33,9 @@ Step 5: navigate into the directory by typing `cd COMP4321_gp_project` in the te
 
 Step 6: Install required packages by typing `pip install -r requirements.txt` in the terminal
 
-Step 7: Run the spider by doing `python3 Spider.py`
+Step 7: Run the spider by doing `python Spider.py`
 
-Step 8: Get the output file by doing `python3 testProgram.py`
+Step 8: Get the output file by doing `python testProgram.py`
 
 Step 9: Now you can read the output from the spider in `spider_result.txt`
 
