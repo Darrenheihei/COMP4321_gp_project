@@ -20,7 +20,7 @@ Step 1: In the current directory, create a Python virtual environment by any mea
 
 Step 2: Activate the virtual environment by typing `env\Scripts\activate.bat` in the terminal. If it doesn't work for some reasons, you can also try `comp4321gp14\Scripts\activate`
 
-Step 63: Install required packages by typing `pip install -r requirements.txt` in the terminal
+Step 3: Install required packages by typing `pip install -r requirements.txt` in the terminal
 
 Step 4: Run the spider by doing `python Spider.py`
 
