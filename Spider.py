@@ -21,7 +21,13 @@ class Spider:
         self.indexer: Indexer = Indexer()
         self.link_queue: queue.Queue = queue.Queue()
         self.crawled_pages: list[str] = []
+        self.id2url: dict = {}
+        self.url2id: dict = {}
         self.child_pages: dict = {}
+        self.parent_pages: dict = {}
+        self.Title: dict = {}
+        self.PageSize: dict = {}
+        self.ModDate: dict = {}
         self.con = None # for SQLite
         self.cur = None # for SQLite
 
@@ -33,59 +39,114 @@ class Spider:
         self.con = sqlite3.connect('project.db')
         self.cur = self.con.cursor()
 
-        # create table 'url2id' when necessary
+        # create table 'url2id' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='url2id'").fetchone() is None:
             self.cur.execute("CREATE TABLE url2id(url, urlId)")
+        else: # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM url2id").fetchall()
+            self.url2id = {i[0]: i[1] for i in result}
 
-        # create table 'id2url' when necessary
+
+        # create table 'id2url' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='id2url'").fetchone() is None:
             self.cur.execute("CREATE TABLE id2url(urlId, url)")
+        else: # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM id2url").fetchall()
+            self.id2url = {i[0]: i[1] for i in result}
 
-        # create table 'ModDate' when necessary
+        # create table 'ModDate' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='ModDate'").fetchone() is None:
             self.cur.execute("CREATE TABLE ModDate(urlId, modDate)")
+        else: # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM ModDate").fetchall()
+            self.ModDate = {i[0]: i[1] for i in result}
 
-        # create table 'Title' when necessary
+        # create table 'Title' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='Title'").fetchone() is None:
             self.cur.execute("CREATE TABLE Title(urlId, title)")
+        else: # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM Title").fetchall()
+            self.Title = {i[0]: i[1] for i in result}
 
-        # create table 'PageSize' when necessary
+        # create table 'PageSize' if not exist, extract previous data if already exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='PageSize'").fetchone() is None:
             self.cur.execute("CREATE TABLE PageSize(urlId, size)")
+        else: # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM PageSize").fetchall()
+            self.PageSize = {i[0]: i[1] for i in result}
 
-        # create table 'CrawledPage' when necessary
+        # create table 'CrawledPage' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='CrawledPage'").fetchone() is None:
             self.cur.execute("CREATE TABLE CrawledPage(url, urlId)")
+        else: # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM CrawledPage").fetchall()
+            self.crawled_pages = {i[0]: i[1] for i in result}
 
-        # create table 'ParentUrl' when necessary
+        # create table 'ParentUrl' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='ParentUrl'").fetchone() is None:
             self.cur.execute("CREATE TABLE ParentUrl(urlId, value)") # value is in the form "parentURLId1 parentURLId2 ..."
+        else:  # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM ParentUrl").fetchall()
+            self.parent_pages = {i[0]: i[1] for i in result}
 
-        # create table 'ChildUrl' when necessary
+        # create table 'ChildUrl' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='ChildUrl'").fetchone() is None:
             self.cur.execute("CREATE TABLE ChildUrl(urlId, value)") # value is in the form "childtURLId1 childtURLId2 ..."
+        else: # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM ChildUrl").fetchall()
+            self.child_pages = {i[0]: i[1] for i in result}
 
         self.con.commit()
+
+    def updateDatabse(self): # store all the data into database
+        pass
+
+    def doCrawl(self, url: str, urlId: str) -> bool:
+        '''
+        it will decide crawling a page or not, as well as saving the last modification date of a
+        page if it should be crawled
+        '''
+        # get actual last modification date of the page
+        modDate: str = self.extractor.getLastModDate(url)
+        # get the stored last modification date of the page
+        storedModDate: str = self.ModDate.get(urlId, None)
+
+        # compare the mod date, return True if modDate is later than storedModDate
+        # the idea here is that, a modification on a page cannot be revert (I think, not 100% sure),
+        # therefore if the value of modDate != storedModDate, that means the page must have been changed
+        return storedModDate is None or modDate != storedModDate
 
 
     def crawlPages(self) -> None:
         print("Start Crawling...")
-        # initialize the queue
-        self.link_queue.put(self.startUrl)
 
-        # start BFS page crawling
+        ### here is to setup the initial queue by deciding whether or not to add the root url into the queue ###
+        urlId: str = ""
+        # get id of the root url
+        if self.startUrl in self.url2id: # already stored the page
+            urlId = self.url2id[self.startUrl]
+        else: # give id2 in a to root url and store it in url2id and id2url
+            urlId = str(uuid.uuid4().int)
+            self.url2id[self.startUrl] = urlId
+            self.id2url[urlId] = self.startUrl
+
+        # check if need to start crawling or not
+        if self.doCrawl(self.startUrl, urlId):
+            self.link_queue.put(self.startUrl) # initialize the queue
+        else:
+            print("Starting page is not modified. End crawling.")
+            return # as the root url is not modified, no need to run the spider
+
+
+        ### start BFS page crawling ###
         while (not self.link_queue.empty()) and len(self.crawled_pages) < self.n:
-            url = self.link_queue.get()
+            url: str = self.link_queue.get()
 
-            # create ID for the url
-            urlId: str = str(uuid.uuid4().int)
-            # add to conversion tables url <=> urlId
-            self.cur.execute("INSERT INTO url2id VALUES(?, ?)", (url, urlId))
-            self.cur.execute(f"INSERT INTO id2url VALUES(?, ?)", (urlId, url))
-            self.con.commit()
-
+            if not self.doCrawl(url, self.url2id.get(url)): # the page is a old and unmodified page
+                continue # skip the page
 
             # crawl the page
+            # TODO: here can do multiprocesing? After getting all the child links, the remaining tasks are not in a hurry
             childLinks: list[str] = self.crawlSinglePage(url, urlId)
 
             # add uncrawled child pages to link_queue
@@ -100,7 +161,7 @@ class Spider:
             self.cur.execute(f"INSERT INTO CrawledPage VALUES(?, ?)", (url, urlId))
             self.con.commit()
 
-        # end of BFS
+        ### end of BFS ###
         # first provide ID to pages that are inside link_queue but not being crawled
         while not self.link_queue.empty():
             url = self.link_queue.get()

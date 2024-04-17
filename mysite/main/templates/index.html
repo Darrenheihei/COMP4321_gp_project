@@ -1,0 +1,22 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>COMP4321 G14 Search Engine</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+
+<body>
+    <h1>Search Engine of COMP4321 Group 14</h1>
+    (add a search bar here)
+<br><br>
+    (only show this if there is some searching being done)
+    <h1>Search Result</h1>
+    {% for result in results %}
+    <div class="searchResultItem">
+        <a href="{{ result.url }}" target="_blank">{{ result.title }}</a><br>
+        <a href="{{ result.url }}" target="_blank">{{ result.url }}</a>
+    </div>
+    {% endfor %}
+</body>
+</html>
