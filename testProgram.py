@@ -45,7 +45,7 @@ def main():
                     bodyFreq = int(bodyFreq[0].split(':')[1])
                 else:
                     bodyFreq = 0
-                if bodyFreq + titleFreq != 0 and count < 10:
+                if bodyFreq + titleFreq != 0:# and count < 10:
                     f.write(f"{keyword} {titleFreq + bodyFreq}; ")
                     count += 1
             f.write('\n')

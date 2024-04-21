@@ -3,14 +3,16 @@ import sqlite3
 import uuid
 import queue
 import requests
+import asyncio
+import time
+import warnings
 
 from ContentExtractor import ContentExtractor
 from StopStem import StopStem
 from Indexer import Indexer
 
-CURSOR_UP = "\033[1A"
-CLEAR = "\x1b[2K"
-CLEAR_LINE = CURSOR_UP + CLEAR
+warnings.filterwarnings("ignore")
+
 
 class Spider:
     def __init__(self, startUrl: str, n: int):
@@ -19,8 +21,8 @@ class Spider:
         self.extractor: ContentExtractor = ContentExtractor()
         self.stemmer: StopStem = StopStem()
         self.indexer: Indexer = Indexer()
-        self.link_queue: queue.Queue = queue.Queue()
-        self.crawled_pages: list[str] = []
+        self.link_queue: list[str] = []
+        self.crawled_pages: list[(str, str)] = []
         self.id2url: dict = {}
         self.url2id: dict = {}
         self.child_pages: dict = {}
@@ -78,36 +80,98 @@ class Spider:
         # create table 'CrawledPage' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='CrawledPage'").fetchone() is None:
             self.cur.execute("CREATE TABLE CrawledPage(url, urlId)")
-        else: # extract previous data if already exist
-            result = self.cur.execute(f"SELECT * FROM CrawledPage").fetchall()
-            self.crawled_pages = {i[0]: i[1] for i in result}
 
         # create table 'ParentUrl' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='ParentUrl'").fetchone() is None:
             self.cur.execute("CREATE TABLE ParentUrl(urlId, value)") # value is in the form "parentURLId1 parentURLId2 ..."
         else:  # extract previous data if already exist
             result = self.cur.execute(f"SELECT * FROM ParentUrl").fetchall()
-            self.parent_pages = {i[0]: i[1] for i in result}
+            self.parent_pages = {i[0]: i[1].split(' ') for i in result}
 
         # create table 'ChildUrl' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='ChildUrl'").fetchone() is None:
             self.cur.execute("CREATE TABLE ChildUrl(urlId, value)") # value is in the form "childtURLId1 childtURLId2 ..."
         else: # extract previous data if already exist
             result = self.cur.execute(f"SELECT * FROM ChildUrl").fetchall()
-            self.child_pages = {i[0]: i[1] for i in result}
+            self.child_pages = {i[0]: i[1].split(' ') for i in result}
 
         self.con.commit()
 
-    def updateDatabse(self): # store all the data into database
-        pass
+    def updateDatabase(self): # store all the data into database
+        # update id2url database
+        # clear the id2url table
+        self.cur.execute("DROP TABLE id2url")
+        self.cur.execute("CREATE TABLE id2url(urlId, url)")
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO id2url VALUES(?, ?)", list(self.id2url.items()))
+        self.con.commit()
 
-    def doCrawl(self, url: str, urlId: str) -> bool:
-        '''
-        it will decide crawling a page or not, as well as saving the last modification date of a
-        page if it should be crawled
-        '''
-        # get actual last modification date of the page
-        modDate: str = self.extractor.getLastModDate(url)
+        # update url2id database
+        # clear the url2id table
+        self.cur.execute("DROP TABLE url2id")
+        self.cur.execute("CREATE TABLE url2id(url, urlId)")
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO url2id VALUES(?, ?)", list(self.url2id.items()))
+        self.con.commit()
+
+        # update Title database
+        # clear the Title table
+        self.cur.execute("DROP TABLE Title")
+        self.cur.execute("CREATE TABLE Title(urlId, title)")
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO Title VALUES(?, ?)", list(self.Title.items()))
+        self.con.commit()
+
+        # update ModDate database
+        # clear the ModDate table
+        self.cur.execute("DROP TABLE ModDate")
+        self.cur.execute("CREATE TABLE ModDate(urlId, modDate)")
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO ModDate VALUES(?, ?)", list(self.ModDate.items()))
+        self.con.commit()
+
+        # update PageSize database
+        # clear the PageSize table
+        self.cur.execute("DROP TABLE PageSize")
+        self.cur.execute("CREATE TABLE PageSize(urlId, size)")
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO PageSize VALUES(?, ?)", list(self.PageSize.items()))
+        self.con.commit()
+
+        # update CrawledPage database
+        # clear the CrawledPage table
+        self.cur.execute("DROP TABLE CrawledPage")
+        self.cur.execute("CREATE TABLE CrawledPage(url, urlId)")
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO CrawledPage VALUES(?, ?)", self.crawled_pages)
+        self.con.commit()
+
+        # update ParentUrl database
+        # clear the ParentUrl table
+        self.cur.execute("DROP TABLE ParentUrl")
+        self.cur.execute("CREATE TABLE ParentUrl(urlId, value)")
+        # construct the value into the specified format
+        key_values = ((key, ' '.join(value)) for key, value in self.parent_pages.items())
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO ParentUrl VALUES(?, ?)", key_values)
+        self.con.commit()
+
+        # update ChildUrl database
+        # clear the ChildUrl table
+        self.cur.execute("DROP TABLE ChildUrl")
+        self.cur.execute("CREATE TABLE ChildUrl(urlId, value)")
+        # construct the value into the specified format
+        key_values = ((key, ' '.join(value)) for key, value in self.child_pages.items())
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO ChildUrl VALUES(?, ?)", key_values)
+        self.con.commit()
+
+
+        # update the databases used in the indexer
+        self.indexer.updateDatabase()
+
+
+    def doCrawl(self, modDate: str, urlId: str) -> bool:
         # get the stored last modification date of the page
         storedModDate: str = self.ModDate.get(urlId, None)
 
@@ -116,93 +180,33 @@ class Spider:
         # therefore if the value of modDate != storedModDate, that means the page must have been changed
         return storedModDate is None or modDate != storedModDate
 
+    async def crawlSinglePage(self, url: str, urlId: str) -> list[str]:
+        '''
+        crawl a page, and return the child links if the page should be crawled
+        '''
 
-    def crawlPages(self) -> None:
-        print("Start Crawling...")
+        # get the actual modification date from the webpage
+        res = await asyncio.to_thread(requests.get, url, verify=False)
+        head = res.headers
+        modDate: str = self.extractor.getLastModDate(head)
 
-        ### here is to setup the initial queue by deciding whether or not to add the root url into the queue ###
-        urlId: str = ""
-        # get id of the root url
-        if self.startUrl in self.url2id: # already stored the page
-            urlId = self.url2id[self.startUrl]
-        else: # give id2 in a to root url and store it in url2id and id2url
-            urlId = str(uuid.uuid4().int)
-            self.url2id[self.startUrl] = urlId
-            self.id2url[urlId] = self.startUrl
+        if not self.doCrawl(modDate, urlId): # we do not need to crawl this page
+            return None
 
-        # check if need to start crawling or not
-        if self.doCrawl(self.startUrl, urlId):
-            self.link_queue.put(self.startUrl) # initialize the queue
-        else:
-            print("Starting page is not modified. End crawling.")
-            return # as the root url is not modified, no need to run the spider
+        ### start crawling the page ###
 
-
-        ### start BFS page crawling ###
-        while (not self.link_queue.empty()) and len(self.crawled_pages) < self.n:
-            url: str = self.link_queue.get()
-
-            if not self.doCrawl(url, self.url2id.get(url)): # the page is a old and unmodified page
-                continue # skip the page
-
-            # crawl the page
-            # TODO: here can do multiprocesing? After getting all the child links, the remaining tasks are not in a hurry
-            childLinks: list[str] = self.crawlSinglePage(url, urlId)
-
-            # add uncrawled child pages to link_queue
-            for childUrl in childLinks:
-                if childUrl not in self.crawled_pages:
-                    self.link_queue.put(childUrl)
-                    self.child_pages[urlId] = self.child_pages.get(urlId, []) + [childUrl]
-
-            # add url to crawled_page
-            self.crawled_pages.append(url)
-            # add the page to the CrawledPage database
-            self.cur.execute(f"INSERT INTO CrawledPage VALUES(?, ?)", (url, urlId))
-            self.con.commit()
-
-        ### end of BFS ###
-        # first provide ID to pages that are inside link_queue but not being crawled
-        while not self.link_queue.empty():
-            url = self.link_queue.get()
-
-            # create ID for the url
-            urlId: str = str(uuid.uuid4().int)
-            # add to conversion tables url <=> urlId
-            self.cur.execute("INSERT INTO url2id VALUES(?, ?)", (url, urlId))
-            self.cur.execute(f"INSERT INTO id2url VALUES(?, ?)", (urlId, url))
-            self.con.commit()
-
-        # then update childURL database
-        for parentUrlId, childUrls in self.child_pages.items():
-            childUrlIds: list[str] = []
-            for childUrl in childUrls:
-                childUrlIds.append(self.cur.execute("SELECT urlId FROM url2id WHERE url=?", (childUrl,)).fetchone()[0])
-            value = ' '.join(childUrlIds)
-            self.cur.execute("INSERT INTO ChildUrl VALUES(?, ?)", (parentUrlId, value))
-            self.con.commit()
-
-
-        print("\nDone!")
-
-        # return self.crawled_pages
-
-    def crawlSinglePage(self, url: str, urlId: str) -> list[str]:
-        print("\r", end="")
-        print(f"Progress: {len(self.crawled_pages) + 1}/{self.n}", end="")
-        # read html page
-        page_data = requests.post(url).text
-        # print(page_data)
+        # get page data
+        page_data: str = res.text
 
         # get title
         title: str = self.extractor.getTitle(page_data)
         processedTitle: list[str] = self.stemmer.process(self.extractor.splitWords(title))
-        # save title to database
-        self.cur.execute(f"INSERT INTO Title VALUES(?, ?)", (urlId, title))
-        self.con.commit()
+        # save title
+        self.Title[urlId] = title
+
         # save title to ForwardIndex
         self.indexer.addNewKeyword(processedTitle)
-        self.indexer.forwardIndex(processedTitle, urlId)
+        self.indexer.forwardIndex(processedTitle, urlId, clearOldContent=True)
         # save title to TitleInvertedIndex
         self.indexer.titleInvertedIndex(processedTitle, urlId)
 
@@ -215,46 +219,109 @@ class Spider:
         # save body text to BodyInvertedIndex
         self.indexer.bodyInvertedIndex(processedBodyText, urlId)
 
-        # get last modification date
-        modDate: str = self.extractor.getLastModDate(url)
-        # save last modification date to database
-        self.cur.execute(f"INSERT INTO ModDate VALUES(?, ?)", (urlId, modDate))
-        self.con.commit()
+        # save last modification
+        self.ModDate[urlId] = modDate
 
         # get page size
-        pageSize: str = str(self.extractor.getPagesize(url, bodyText))
-        # save page size to database
-        self.cur.execute(f"INSERT INTO PageSize VALUES(?, ?)", (urlId, pageSize))
-        self.con.commit()
+        pageSize: str = str(self.extractor.getPagesize(head, bodyText))
+        # save page size
+        self.PageSize[urlId] = pageSize
 
         # get child links
         childLinks: list[str] = self.extractor.getLinks(url, page_data)
+
         return childLinks
+
+    def addLinkRelation(self, curUrl, childUrl, ids, paths):
+        if childUrl not in ids: # childUrl is not in the queue to be fetched yet
+            return True
+
+        if paths[curUrl] & ids[childUrl] > 0:  # cycle detected
+            return False
+
+        # no cycle detected, update childUrl's path and return True
+        paths[childUrl] = paths[childUrl] | ids[curUrl] | paths[curUrl]
+        return True
+
+
+    async def crawlPages(self) -> None:
+        print("Start Crawling...")
+        tasks = []
+        temp = []
+
+        cycleDetectionId = 1  # for the use of cycle detection
+        cycle_ids = {}  # for the use of cycle detection
+        cycle_paths = {}  # for the user of cycle detection
+
+        ### initialize the crawling asyncio algorithm ###
+        curUrlId: str = self.url2id.get(self.startUrl, None)
+
+        if curUrlId is None: # the page is a new page
+            curUrlId = str(uuid.uuid4().int)
+            self.url2id[self.startUrl] = curUrlId
+            self.id2url[curUrlId] = self.startUrl
+
+        task = asyncio.create_task(self.crawlSinglePage(self.startUrl, curUrlId))
+        tasks.append((self.startUrl, task))
+        self.link_queue.append(self.startUrl)
+        # for cycle detection
+        cycle_ids[self.startUrl] = cycleDetectionId
+        cycleDetectionId *= 2
+        cycle_paths[self.startUrl] = 0
+
+
+        while tasks != [] and len(self.crawled_pages) < self.n:
+            temp = []
+            for curUrl, task in tasks[:self.n - len(self.crawled_pages)]: # the slicing is to control the number of crawled pages
+                curUrlId = self.url2id[curUrl]
+                childLinks = await task
+
+                if childLinks is None: # do not need to crawl this page
+                    continue
+
+                for link in childLinks:
+                    # get id of the page
+                    childUrlId: str = self.url2id.get(link, None)
+
+                    if childUrlId is None:  # the page is a new page
+                        childUrlId = str(uuid.uuid4().int)
+                        self.url2id[link] = childUrlId
+                        self.id2url[childUrlId] = link
+
+
+                    if link not in self.crawled_pages + self.link_queue: # the page is a new page
+                        task = asyncio.create_task(self.crawlSinglePage(link, childUrlId))
+                        temp.append((link, task))
+                        self.link_queue.append(link)
+
+                        cycle_ids[link] = cycleDetectionId
+                        cycleDetectionId *= 2
+                        cycle_paths[link] = cycle_paths[curUrl] | cycle_ids[curUrl] # update path for the child page
+
+                    # check whether set current page as parent URL of the child page
+                    if self.addLinkRelation(curUrl, link, cycle_ids, cycle_paths):
+                        # TODO: perform checking with original parent/child links
+                        self.child_pages[curUrlId] = self.child_pages.get(curUrlId, []) + [childUrlId]
+                        self.parent_pages[childUrlId] = self.parent_pages.get(childUrlId, []) + [curUrlId]
+
+                self.crawled_pages.append((curUrl, curUrlId))
+
+                print("\r", end="")
+                print(f"Progress: {len(self.crawled_pages)}/{self.n}", end="")
+
+            tasks = temp
+
+
+        ### finish crawling, perform some post-crawling task ###
+        self.updateDatabase()
+        print("\r", end="")
+        print(f"Progress: {len(self.crawled_pages)}/{self.n}", end="")
+        print("\nDone!")
 
 
 if __name__ == '__main__':
-    spider = Spider("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", 30)
-    pages = spider.crawlPages()
-    # print("Num of pages:", len(pages))
-    # print(pages)
-
-    # links = queue.Queue()
-    # i = 0
-    # while (i < 1000):
-    #     links.put(i)
-    #     i += 1
-    #     print(links.qsize())
-    #
-    # while(not links.empty()):
-    #     print(links.get(), links.qsize())
-    # links.put('hello')
-    # links.put('world')
-    # print(links.get())
-    # links.put('!')
-    # print(links.empty(), links.get())
-    # print(links.empty(), links.get())
-    # print(links.empty())
-    # print(links.get() is None)
-
-#    [test, page, thi, test, page, crawler, befor, get, admis, cse, depart, hkust, you, read, intern, new, book, here,
-#     movi, list, new]
+    spider = Spider("https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm", 300)
+    start = time.perf_counter()
+    asyncio.run(spider.crawlPages())
+    end = time.perf_counter()
+    print(f"{end - start:.2f}s")
