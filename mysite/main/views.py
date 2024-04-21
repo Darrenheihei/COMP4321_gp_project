@@ -5,7 +5,7 @@ from .models import SearchResult
 
 def index(request):
     class resultItem:
-        def __init__(self, score, title, url, keywords=None, parentLinks=None, childLinks=None):
+        def __init__(self, title, url, score=0, keywords=None, parentLinks=None, childLinks=None):
             self.score = score
             self.title = title
             self.url = url

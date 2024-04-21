@@ -4,6 +4,11 @@ import uuid
 
 class Indexer:
     def __init__(self):
+        self.keyword2id = {}
+        self.id2keyword = {}
+        self.ForwardIndex = {}
+        self.TitleInvertedIndex = {}
+        self.BodyInvertedIndex = {}
         self.con = None # for SQLite
         self.cur = None # for SQLite
 
@@ -13,106 +18,153 @@ class Indexer:
         self.con = sqlite3.connect('project.db')
         self.cur = self.con.cursor()
 
-        # create table 'keyword2id' when necessary
+        # create table 'keyword2id' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='keyword2id'").fetchone() is None:
             self.cur.execute("CREATE TABLE keyword2id(keyword, keywordId)")
+        else: # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM keyword2id").fetchall()
+            self.keyword2id = {i[0]: i[1] for i in result}
 
-        # create table 'id2keyword' when necessary
+        # create table 'id2keyword' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='id2keyword'").fetchone() is None:
             self.cur.execute("CREATE TABLE id2keyword(keywordId, keyword)")
+        else:  # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM id2keyword").fetchall()
+            self.id2keyword = {i[0]: i[1] for i in result}
 
-        # create table 'ForwardIndex' when necessary
+
+        # create table 'ForwardIndex' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='ForwardIndex'").fetchone() is None:
             self.cur.execute("CREATE TABLE ForwardIndex(urlId, value)") # value is in the form of "keywordId1 keywordId2 ..."
+        else:  # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM ForwardIndex").fetchall()
+            self.ForwardIndex = {i[0]: i[1].split(' ') for i in result}
 
-        # create table 'TitleInvertedIndex' when necessary
+        # create table 'TitleInvertedIndex' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='TitleInvertedIndex'").fetchone() is None:
-            self.cur.execute("CREATE TABLE TitleInvertedIndex(keywordId, value)") # value is in the form of "urlId1:freq1 urlId2:freq2 ..."
+            self.cur.execute("CREATE TABLE TitleInvertedIndex(keywordId, value)") # value is in the form of "urlId1:freq1:pos1,pos2 urlId2:freq2:pos1,pos2 ..."
+        else:  # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM TitleInvertedIndex").fetchall()
+            # print([[(urlId,) for i in value.split(' ') for urlId in i.split(':')] for keywordId, value in result])
+            self.TitleInvertedIndex = {keywordId:
+                                           {i.split(':')[0]: {'freq': i.split(':')[1], 'pos': map(int, i.split(':')[2].split(','))} for i in value.split(' ')}
+                                       for keywordId, value in result}
 
-        # create table 'BodyInvertedIndex' when necessary
+        # create table 'BodyInvertedIndex' if not exist
         if self.cur.execute("SELECT name FROM sqlite_master WHERE name='BodyInvertedIndex'").fetchone() is None:
-            self.cur.execute("CREATE TABLE BodyInvertedIndex(keywordId, value)")  # value is in the form of "urlId1:freq1 urlId2:freq2 ..."
+            self.cur.execute("CREATE TABLE BodyInvertedIndex(keywordId, value)")  # value is in the form of "urlId1:freq1:pos1,pos2 urlId2:freq2,pos1,pos2 ..."
+        else:  # extract previous data if already exist
+            result = self.cur.execute(f"SELECT * FROM BodyInvertedIndex").fetchall()
+            self.BodyInvertedIndex = {keywordId:
+                                          {i.split(':')[0]: {'freq': i.split(':')[1], 'pos': map(int, i.split(':')[2].split(','))} for i in value.split(' ')}
+                                      for keywordId, value in result}
 
+
+        self.con.commit()
+
+    def updateDatabase(self):
+        # update keyword2id database
+        # clear the keyword2id table
+        self.cur.execute("DROP TABLE keyword2id")
+        self.cur.execute("CREATE TABLE keyword2id(keyword, keywordId)")
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO keyword2id VALUES(?, ?)", list(self.keyword2id.items()))
+        self.con.commit()
+
+        # update id2keyword database
+        # clear the id2keyword table
+        self.cur.execute("DROP TABLE id2keyword")
+        self.cur.execute("CREATE TABLE id2keyword(keywordId, keyword)")
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO id2keyword VALUES(?, ?)", list(self.id2keyword.items()))
+        self.con.commit()
+
+        # update ForwardIndex database
+        # clear the ForwardIndex table
+        self.cur.execute("DROP TABLE ForwardIndex")
+        self.cur.execute("CREATE TABLE ForwardIndex(urlId, value)")
+        # construct the value into the specified format
+        key_values = ((key, ' '.join(value)) for key, value in self.ForwardIndex.items())
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO ForwardIndex VALUES(?, ?)", key_values)
+        self.con.commit()
+
+        # update TitleInvertedIndex database
+        # clear the TitleInvertedIndex table
+        self.cur.execute("DROP TABLE TitleInvertedIndex")
+        self.cur.execute("CREATE TABLE TitleInvertedIndex(keywordId, value)")
+        # construct the value into the specified format
+        key_values = ((keywordId, ' '.join([f"{urlId}:{inner_value['freq']}:{','.join(map(str, inner_value['pos']))}" for urlId, inner_value in value.items()]))
+                      for keywordId, value in self.TitleInvertedIndex.items())
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO TitleInvertedIndex VALUES(?, ?)", key_values)
+        self.con.commit()
+
+        # update BodyInvertedIndex database
+        # clear the BodyInvertedIndex table
+        self.cur.execute("DROP TABLE BodyInvertedIndex")
+        self.cur.execute("CREATE TABLE BodyInvertedIndex(keywordId, value)")
+        # construct the value into the specified format
+        key_values = ((keywordId, ' '.join([f"{urlId}:{inner_value['freq']}:{','.join(map(str, inner_value['pos']))}" for urlId, inner_value in value.items()]))
+                      for keywordId, value in self.BodyInvertedIndex.items())
+        # update the entries inside the table
+        self.cur.executemany("INSERT INTO BodyInvertedIndex VALUES(?, ?)", key_values)
         self.con.commit()
 
     def addNewKeyword(self, keywords: list[str]) -> None:
         for keyword in keywords:
-            if not self.hasId(keyword): # the keyword haven't get an ID
+            if not self.keyword2id.get(keyword, None) is not None: # the keyword haven't get an ID
                 # create ID for the keyword
                 keywordId: str = str(uuid.uuid4().int)
-                self.cur.execute(f"INSERT INTO keyword2id VALUES(?, ?)", (keyword, keywordId))
-                self.cur.execute(f"INSERT INTO id2keyword VALUES(?, ?)", (keywordId, keyword))
-                self.con.commit()
+                self.keyword2id[keyword] = keywordId
+                self.id2keyword[keywordId] = keyword
 
-    def hasId(self, keyword: str) -> bool:
-        return self.cur.execute("SELECT keywordId FROM keyword2id WHERE keyword=?", (keyword,)).fetchone() is not None
-
-    def forwardIndex(self, words: list[str], urlId: str) -> None:
+    def forwardIndex(self, words: list[str], urlId: str, clearOldContent: bool=False) -> None:
         unique_words: list[str] = list(set(words))
-        wordIds: list[str] = []
-        value: str = self.cur.execute(f"SELECT value FROM ForwardIndex WHERE urlId=?", (urlId,)).fetchone()
-        if value is None:
-            value = ''
-        else:
-            value = value[0] + ' '
+        value: list[str] = []
+        if not clearOldContent:
+            value: list[str] = self.ForwardIndex.get(urlId, [])
 
         for word in unique_words:
-            keywordId = self.cur.execute("SELECT keywordId FROM keyword2id WHERE keyword=?", (word,)).fetchone()[0]
+            keywordId = self.keyword2id[word]
             if keywordId not in value: # prevent double counting a keyword that appears in both title and body text
-                wordIds.append(keywordId)
+                value.append(keywordId)
 
-        value += ' '.join(wordIds)
-
-        # clear the original row in the database if there is
-        self.cur.execute("DELETE FROM ForwardIndex WHERE urlId=?", (urlId,))
-        self.con.commit()
-
-        # add the new value to the database
-        self.cur.execute("INSERT INTO ForwardIndex VALUES(?, ?)", (urlId, value))
-        self.con.commit()
+        # save the new value
+        self.ForwardIndex[urlId] = value
 
 
     def titleInvertedIndex(self, words: list[str], urlId: str) -> None:
-        counter: Counter = Counter(words)
-        for keyword, freq in counter.items():
-            keywordId: str = self.cur.execute("SELECT keywordId FROM keyword2id WHERE keyword=?", (keyword,)).fetchone()[0]
-            value: str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId=?", (keywordId,)).fetchone()
-            if value is None:
-                value = ''
+        word_pos: dict = {} # keyword: [pos1, pos2, ...]
+        # loop through the words list to get the position of all the words
+        for n, word in enumerate(words):
+            word_pos[word] = word_pos.get(word, []) + [n]
+
+        # store the info for every keyword
+        for keyword, positions in word_pos.items():
+            keywordId: str = self.keyword2id[keyword]
+
+            # save the value
+            if keywordId in self.TitleInvertedIndex:
+                self.TitleInvertedIndex[keywordId][urlId] = {'freq': len(positions), 'pos': positions}
             else:
-                value = value[0] + ' '
-
-            value += f"{urlId}:{freq}"
-
-            # clear the original row in the database if there is
-            self.cur.execute("DELETE FROM TitleInvertedIndex WHERE keywordId=?", (keywordId,))
-            self.con.commit()
-
-            # add the new value to the database
-            self.cur.execute("INSERT INTO TitleInvertedIndex VALUES(?, ?)", (keywordId, value))
-            self.con.commit()
-
+                self.TitleInvertedIndex[keywordId] = {urlId: {'freq': len(positions), 'pos': positions}}
 
 
     def bodyInvertedIndex(self, words: list[str], urlId: str) -> None:
-        counter = Counter(words)
-        for keyword, freq in counter.items():
-            keywordId: str = self.cur.execute("SELECT keywordId FROM keyword2id WHERE keyword=?", (keyword,)).fetchone()[0]
-            value: str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId=?", (keywordId,)).fetchone()
-            if value is None:
-                value = ''
+        word_pos: dict = {}  # keyword: [pos1, pos2, ...]
+        # loop through the words list to get the position of all the words
+        for n, word in enumerate(words):
+            word_pos[word] = word_pos.get(word, []) + [n]
+
+        for keyword, positions in word_pos.items():
+            keywordId: str = self.keyword2id[keyword]
+
+            # save the value
+            if keywordId in self.BodyInvertedIndex:
+                self.BodyInvertedIndex[keywordId][urlId] = {'freq': len(positions), 'pos': positions}
             else:
-                value = value[0] + ' '
-
-            value += f"{urlId}:{freq}"
-
-            # clear the original row in the database if there is
-            self.cur.execute("DELETE FROM BodyInvertedIndex WHERE keywordId=?", (keywordId,))
-            self.con.commit()
-
-            # add the new value to the database
-            self.cur.execute("INSERT INTO BodyInvertedIndex VALUES(?, ?)", (keywordId, value))
-            self.con.commit()
+                self.BodyInvertedIndex[keywordId] = {urlId: {'freq': len(positions), 'pos': positions}}
 
 
 if __name__ == '__main__':

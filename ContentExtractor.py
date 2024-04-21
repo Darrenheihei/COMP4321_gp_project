@@ -20,8 +20,11 @@ class ContentExtractor:
         splittedWords = re.split(r"[^a-zA-Z0-9'\-]+", words)
         return [i.strip('-').strip(' ') for i in splittedWords if i not in ['', '-']]
 
-    def getLastModDate(self, url: str) -> str:
-        res = requests.head(url).headers
+    def getLastModDate(self, res) -> str:
+        '''
+        :param res: requests.head().headers
+        :return: last modification date in string form
+        '''
 
         if 'Last-Modified' in res:
             return res['Last-Modified']
@@ -35,8 +38,13 @@ class ContentExtractor:
             links.append(urljoin(baseUrl, link.get('href')))
         return links
 
-    def getPagesize(self, url: str, bodyText: str) -> int:
-        res = requests.head(url).headers
+    def getPagesize(self, res, bodyText: str) -> int:
+        '''
+        :param res: requests.head().headers
+        :param bodyText: body text of the url
+        :return: page size in int form
+        '''
+
         if 'Content-Length' in res:
             return int(res['Content-Length'])
         else:
