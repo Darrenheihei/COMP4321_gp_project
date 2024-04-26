@@ -324,4 +324,4 @@ if __name__ == '__main__':
     start = time.perf_counter()
     asyncio.run(spider.crawlPages())
     end = time.perf_counter()
-    print(f"{end - start:.2f}s")
+    print(f"Time spent: {end - start:.2f}s")
