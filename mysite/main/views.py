@@ -24,9 +24,9 @@ def index(response):
 
 
     submitted = False
-    result1 = resultItem(0, "Test page", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm" , "1-1-1111", 100, {'a': 10, 'b': 20}, ["parent 1", "parent 2"], ["child 1"])
-    result2 = resultItem(0, "CSE department of HKUST", "https://www.cse.ust.hk/~kwtleung/COMP4321/ust_cse.htm", "1-1-1111", 100, {'c': 30, 'd': 40}, [], [])
-    results = [result1, result2]
+    # result1 = resultItem(0, "Test page", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm" , "1-1-1111", 100, {'a': 10, 'b': 20}, ["parent 1", "parent 2"], ["child 1"])
+    # result2 = resultItem(0, "CSE department of HKUST", "https://www.cse.ust.hk/~kwtleung/COMP4321/ust_cse.htm", "1-1-1111", 100, {'c': 30, 'd': 40}, [], [])
+    results = []
 
     if response.method == "POST":
         form = UserQuery(response.POST)
