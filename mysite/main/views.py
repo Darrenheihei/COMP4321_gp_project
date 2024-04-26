@@ -1,18 +1,41 @@
-from django.shortcuts import render, HttpResponse
-from .models import SearchResult
+from django.shortcuts import render, HttpResponse, HttpResponseRedirect
+from .forms import UserQuery
 
 # Create your views here.
+def index(response):
 
-def index(request):
     class resultItem:
-        def __init__(self, title, url, score=0, keywords=None, parentLinks=None, childLinks=None):
+        def __init__(self, score, title, url, date, size, keywords, parentLinks, childLinks):
             self.score = score
             self.title = title
             self.url = url
-            self.keywords = keywords
-            self.parentLinks = parentLinks
-            self.childLinks = childLinks
+            self.date = date
+            self.size = size
+            self.keywords = '; '.join(f"{key} {value}" for key, value in keywords.items())
+            if parentLinks != []:
+                self.parentLinks = parentLinks
+            else:
+                self.parentLinks = ["This page has no parent links"]
 
-    result1 = resultItem("Test page", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm")
-    result2 = resultItem("CSE department of HKUST", "https://www.cse.ust.hk/~kwtleung/COMP4321/ust_cse.htm")
-    return render(request, "index.html", {"results": [result1, result2]})
+            if childLinks != []:
+                self.childLinks = childLinks
+            else:
+                self.childLinks = ["This page has no child links"]
+
+
+    submitted = False
+    result1 = resultItem(0, "Test page", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm" , "1-1-1111", 100, {'a': 10, 'b': 20}, ["parent 1", "parent 2"], ["child 1"])
+    result2 = resultItem(0, "CSE department of HKUST", "https://www.cse.ust.hk/~kwtleung/COMP4321/ust_cse.htm", "1-1-1111", 100, {'c': 30, 'd': 40}, [], [])
+    results = [result1, result2]
+
+    if response.method == "POST":
+        form = UserQuery(response.POST)
+    else:
+        form = UserQuery()
+
+    if form.is_valid():
+        submitted = True
+        query = form.cleaned_data["query"] # this gives you the query the user submitted
+        # TODO: uncomment the line below and call the ranking function
+        # results = <ranking_function>()
+    return render(response, "index.html", {"results": results, "form":form, "submitted": submitted})

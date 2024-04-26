@@ -7,8 +7,31 @@ h1 {
   border-radius: 5px;
   margin: 10px;
   padding: 10px;
+  display: grid;
+  grid-template-columns: 50px auto;
 }
 
 .searchResultItem:hover {
     background-color: #00CCFF;
+}
+
+.score {
+    grid-column-start: 1;
+}
+
+.searchResultItem > a, p {
+    grid-column-start: 2;
+}
+
+
+.searchForm {
+    display: flex;
+    justify-content: center;
+}
+
+.searchBar {
+    display: block;
+    margin-left: auto;
+    width: 500px;
+    margin-right: 10px;
 }

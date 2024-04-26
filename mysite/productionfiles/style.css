@@ -12,3 +12,15 @@ h1 {
 .searchResultItem:hover {
     background-color: #00CCFF;
 }
+
+.searchForm {
+    display: flex;
+    justify-content: center;
+}
+
+.searchBar {
+    display: block;
+    margin-left: auto;
+    width: 500px;
+    margin-right: 10px;
+}
