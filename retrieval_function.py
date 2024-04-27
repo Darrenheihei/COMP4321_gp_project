@@ -3,7 +3,6 @@ import numpy as np
 from StopStem import StopStem
 from ContentExtractor import ContentExtractor
 from multiprocessing import Pool
-from itertools import repeat
 from functools import partial
 
 class resultItems:
@@ -394,38 +393,48 @@ class retrieval_function:
 
 
 
-def get_AllResult(prompt:str):
-    results = []
-    rf = retrieval_function()
-    query:list[str] = rf.splitPrompt(prompt)
-    urlids:list[str] = rf.get_relevant_urlid(query)
-    # for urlid in urlids:
-    #     score:float = rf.get_score(urlid,query)
-    #     title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
-    #     url:str = rf.cur.execute(f"SELECT url FROM id2url WHERE urlId='{urlid}'").fetchone()[0]
-    #     tv = rf.term_fre_doc(urlid,query,True)
-    #     bv = rf.term_fre_doc(urlid,query,False)
-    #     for key in tv.keys():
-    #         if key in bv.keys():
-    #             bv[key] = bv[key] + tv[key]
-    #         else:
-    #             bv[key] = tv[key]
-    #     # parentLinks
-    #     if rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone() is not None:
-    #         childLinks= rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone()[0]
-    #         child= childLinks.split(" ")
-    #     else:
-    #         child = None
-        
-    #     results.append(resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child))
-    # with Pool(10) as pool:
-    #     results = pool.map(retrieval_function.get_result)
-    # return results
+    def get_AllResult(self,prompt:str) :
+        results = []
+        query:list[str] = self.splitPrompt(prompt)
+        urlids:list[str] = self.get_relevant_urlid(query)
+        for urlid in urlids:
+            x = self.get_result(urlid,query)
+            results.append(x)
+            # score:float = rf.get_score(urlid,query)
+            # title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
+            # url:str = rf.cur.execute(f"SELECT url FROM id2url WHERE urlId='{urlid}'").fetchone()[0]
+            # tv = rf.term_fre_doc(urlid,query,True)
+            # bv = rf.term_fre_doc(urlid,query,False)
+            # for key in tv.keys():
+            #     if key in bv.keys():
+            #         bv[key] = bv[key] + tv[key]
+            #     else:
+            #         bv[key] = tv[key]
+            # # parentLinks
+            # if rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone() is not None:
+            #     childLinks= rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone()[0]
+            #     child= childLinks.split(" ")
+            # else:
+            #     child = None
+
+            
+            # results.append(resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child))
+        # with Pool(10) as pool:
+        #     p = partial(self.get_result,self=self,query=query)
+        #     results = pool.map(p,urlids)
+        # pool = Pool(10)
+        # p = partial(self.get_result,query=query)
+        # results = pool.map(p,urlids)
+ 
+        return results
+
+
 
 
 if __name__ == '__main__':
     
     rf = retrieval_function()
+    # item = rf.get_result()
 
     #test prepare
     # for urlid in rf.table.keys():
@@ -546,9 +555,10 @@ if __name__ == '__main__':
     # test get_result()
     from time import time
     start = time()
-    results:list[resultItems] = get_AllResult("hello world")
+    results:list[resultItems] = rf.get_AllResult("hello world")
     end = time()
-    print(end-start)
+    print("time: ",end-start)
+    print(len(results))
     for result in results:
         print(result.score)
     # test:str = "hkust"
