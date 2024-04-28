@@ -2,8 +2,7 @@ import sqlite3
 import numpy as np
 from StopStem import StopStem
 from ContentExtractor import ContentExtractor
-from multiprocessing import Pool
-from functools import partial
+
 
 class resultItems:
     def __init__(self,score,title,url,keywords=None,parentLinks=None,childLinks=None):
@@ -23,6 +22,41 @@ class retrieval_function:
         self.ss = StopStem()
         self.ce = ContentExtractor()
         self.N:int = len(documents)  # number of documents
+        self.keyword2id = {}
+        self.id2keyword = {}
+        self.ForwardIndex = {}
+        self.TitleInvertedIndex = {}
+        self.BodyInvertedIndex = {}
+        self.child_pages: dict = {}
+        self.parent_pages: dict = {}
+        self.Title: dict = {}
+        self.id2url: dict = {}
+        self.prepare()
+
+    def prepare(self):
+        result = self.cur.execute(f"SELECT * FROM keyword2id").fetchall()
+        self.keyword2id = {i[0]: i[1] for i in result}
+        result = self.cur.execute(f"SELECT * FROM id2keyword").fetchall()
+        self.id2keyword = {i[0]: i[1] for i in result}
+        result = self.cur.execute(f"SELECT * FROM ForwardIndex").fetchall()
+        self.ForwardIndex = {i[0]: i[1].split(' ') for i in result}
+        result = self.cur.execute(f"SELECT * FROM TitleInvertedIndex").fetchall()
+        self.TitleInvertedIndex = {keywordId:
+                                        {i.split(':')[0]: {'freq': int(i.split(':')[1]), 'pos': list(map(int, i.split(':')[2].split(',')))} for i in value.split(' ')}
+                                    for keywordId, value in result}
+        result = self.cur.execute(f"SELECT * FROM BodyInvertedIndex").fetchall()
+        self.BodyInvertedIndex = {keywordId:
+                                        {i.split(':')[0]: {'freq': int(i.split(':')[1]), 'pos': list(map(int, i.split(':')[2].split(',')))} for i in value.split(' ')}
+                                    for keywordId, value in result}
+        result = self.cur.execute(f"SELECT * FROM Title").fetchall()
+        self.Title = {i[0]: i[1] for i in result}
+        result = self.cur.execute(f"SELECT * FROM ParentUrl").fetchall()
+        self.parent_pages = {i[0]: i[1].split(' ') for i in result}
+        result = self.cur.execute(f"SELECT * FROM ChildUrl").fetchall()
+        self.child_pages = {i[0]: i[1].split(' ') for i in result}
+        result = self.cur.execute(f"SELECT * FROM id2url").fetchall()
+        self.id2url = {i[0]: i[1] for i in result}
+
 
     def splitPrompt(self, prompt:str) -> list:
         terms = prompt.split('"')
@@ -36,9 +70,9 @@ class retrieval_function:
         for ph in phrase:
             words:list[str] = self.ce.splitWords(ph)
             words = self.ss.process(words)
-            # add single term in the phrase 
+            # add single term in the phrase
             for word in words:
-                if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone() is not None:
+                if word in self.keyword2id.keys():
                     terms.append(word)
             # combine the split terms to phrase
             if self.checkAllWordsHaveId(words):
@@ -53,70 +87,60 @@ class retrieval_function:
         keywords = self.ss.process(keywords)
         # terms.extend(keywords)
         for t in keywords:
-            if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(t,)).fetchone() is not None:
+            if t in self.keyword2id.keys():
                 terms.append(t)
         return terms
-    
+
     def get_relevant_urlid(self,terms:list[str]) -> list:
 
         urlids:set = set()
         for term in terms:
-            if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(term,)).fetchone() is not None:
-                keywordId:str = self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(term,)).fetchone()[0]
+            if term in self.keyword2id.keys():
+                keywordId:str = self.keyword2id[term]
             else:
                 continue
-            
-            if self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{keywordId}'").fetchone() is not None:
-                bodyValue:str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{keywordId}'").fetchone()[0]
-                records:list[str] = bodyValue.split(" ")
-                # print("len:", len(records))
-                for record in records:
-                    doc_fre_pos:list[str] = record.split(":")
-                    urlids.add(doc_fre_pos[0])
 
-            if self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{keywordId}'").fetchone() is not None:
-                bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{keywordId}'").fetchone()[0]
-                records:list[str] = bodyValue.split(" ")
-                # print("len:", len(records))
-                for record in records:
-                    doc_fre_pos:list[str] = record.split(":")
-                    urlids.add(doc_fre_pos[0])
+            if keywordId in self.TitleInvertedIndex.keys():
+                docs = self.TitleInvertedIndex[keywordId].keys()
+                for doc in docs:
+                    urlids.add(doc)
 
+            if keywordId in self.BodyInvertedIndex.keys():
+                docs = self.BodyInvertedIndex[keywordId].keys()
+                for doc in docs:
+                    urlids.add(doc)
         return list(urlids)
-    
+
     def calculate_phrase_df(self, phrase:list[str],title:bool=False) -> int:
 
         df:int = 0
         table = {}
         for word in phrase:
             inner_table = {}
-            wordId:str = self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone()[0]
+            wordId:str = self.keyword2id[word]
             if title:
-                if self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
+                if wordId not in self.TitleInvertedIndex.keys():
                     return 0
-                bodyValue:str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
+                doc_fre_pos:dict = self.TitleInvertedIndex[wordId]
             else:
-                if self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
+                if wordId not in self.BodyInvertedIndex.keys():
                     return 0
-                bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
-            records = bodyValue.split(" ")
-
-            for record in records:
-                doc_fre_pos:list[str] = record.split(":")
-                inner_table[doc_fre_pos[0]] = doc_fre_pos[2].split(",")
+                doc_fre_pos:dict = self.BodyInvertedIndex[wordId]
+            for doc in doc_fre_pos.keys():
+                inner_table[doc] = doc_fre_pos[doc]['pos']
                 # print(doc_fre_pos[0],":",inner_table[doc_fre_pos[0]])
 
             table[word] = inner_table
             # print(f"len of {word}: ",len(table[word]))
-        
+
         first_inner_table:dict = table[phrase[0]]
         for doc in (first_inner_table.keys()):
             flag:bool = True
             for i in range(1,len(phrase)):
                 if doc not in dict(table[phrase[i]]).keys():
-                    flag = False 
+                    flag = False
                     break
-            
+
             if flag == False: # the doc not have all words in phrase
                 continue
 
@@ -124,52 +148,52 @@ class retrieval_function:
                 flag = True
                 for i in range(1,len(phrase)):
                     inner_table:dict = table[phrase[i]]
-                    if str(int(pos)+1) not in inner_table[doc]:
-                        flag = False 
+                    if (pos+1) not in inner_table[doc]:
+                        flag = False
                         break
                 if flag == True:
                     df += 1
                     break
         return df
 
-    
+
     def checkAllWordsHaveId(self,phrase:list[str]) -> bool:
         for word in phrase:
-            if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone() is None:
+            if word not in self.keyword2id:
                 return False
         return True
 
-    
-    def check_phrase(self, urlid:str, phrase:list[str], len_phrase:int, check_word_index:int, check_pos:int,title:bool = False)->bool: 
-        if check_word_index == len_phrase: # all words in phrase have been checked
-            return True
-        else:
-            word:str = phrase[check_word_index]
-            if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone() is None:
-                # print("keyword2id")
-                return False
-            wordId:str = self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone()[0]
-            if title:
-                if self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
-                    # print("invertedindex")
-                    return False
-                bodyValue:str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
-            else:
-                if self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
-                    # print("invertedindex")
-                    return False
-                bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
 
-            records:list[str] = bodyValue.split(" ")
-            for record in records:
-                # print(record)
-                if urlid in record:
-                    doc_fre_pos = record.split(":")
-                    positions = doc_fre_pos[2].split(",")
-                    if str(check_pos) in positions:
-                        return self.check_phrase(urlid,phrase,len_phrase,check_word_index+1,check_pos+1)
-                    else:
-                        return False
+    # def check_phrase(self, urlid:str, phrase:list[str], len_phrase:int, check_word_index:int, check_pos:int,title:bool = False)->bool:
+    #     if check_word_index == len_phrase: # all words in phrase have been checked
+    #         return True
+    #     else:
+    #         word:str = phrase[check_word_index]
+    #         if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone() is None:
+    #             # print("keyword2id")
+    #             return False
+    #         wordId:str = self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone()[0]
+    #         if title:
+    #             if self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
+    #                 # print("invertedindex")
+    #                 return False
+    #             bodyValue:str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
+    #         else:
+    #             if self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
+    #                 # print("invertedindex")
+    #                 return False
+    #             bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
+
+    #         records:list[str] = bodyValue.split(" ")
+    #         for record in records:
+    #             # print(record)
+    #             if urlid in record:
+    #                 doc_fre_pos = record.split(":")
+    #                 positions = doc_fre_pos[2].split(",")
+    #                 if str(check_pos) in positions:
+    #                     return self.check_phrase(urlid,phrase,len_phrase,check_word_index+1,check_pos+1)
+    #                 else:
+    #                     return False
 
     def term_fre_doc(self,urlid:str,keywords:list[str],title:bool = False) -> dict:
         term_fre = {}
@@ -180,77 +204,68 @@ class retrieval_function:
                 table = {}
                 for word in phrase:
                     inner_table = {}
-                    wordId:str = self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone()[0]
+                    wordId:str = self.keyword2id[word]
                     if title:
-                        if self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
-                            return 0
-                        bodyValue:str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
+                        doc_fre_pos:dict = self.TitleInvertedIndex[wordId]
                     else:
-                        if self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
-                            return 0
-                        bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
-                    records = bodyValue.split(" ")
-                    for record in records:
-                        if urlid in record:
-                            doc_fre_pos:list[str] = record.split(":")
-                            table[word] = doc_fre_pos[2].split(",")
-                            break
-                
-                pos_of_first_word:list[str] = table[phrase[0]]
+                        doc_fre_pos:dict = self.BodyInvertedIndex[wordId]
+
+
+                    table[word] = doc_fre_pos[urlid]['pos']
+
+
+                pos_of_first_word:list[int] = table[phrase[0]]
                 for pos in pos_of_first_word:
                     for i in range(1,len(phrase)):
-                        pos_ls:list[str] = table[phrase[i]]
-                        if str(int(pos)+1) not in pos_ls:
+                        pos_ls:list[int] = table[phrase[i]]
+                        if (pos+1) not in pos_ls:
                             break
                         if i == (len(phrase) - 1 ):
                             fre += 1
-                
+
                 term_fre[keyword] = fre
 
             else: # single word
-                if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(keyword,)).fetchone() is None:
+                if keyword not in self.keyword2id.keys():
                     continue
-                keywordId:str = self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(keyword,)).fetchone()[0]
+                keywordId:str = self.keyword2id[keyword]
 
                 if title:
-                    if self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{keywordId}'").fetchone() is None:
+                    if keywordId not in self.TitleInvertedIndex.keys():
                         continue
-                    bodyValue:str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{keywordId}'").fetchone()[0]
+                    doc_fre_pos:dict = self.TitleInvertedIndex[keywordId]
+                    # print("title:",doc_fre_pos)
                 else:
-                    if self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{keywordId}'").fetchone() is None:
+                    if keywordId not in self.BodyInvertedIndex.keys():
                         continue
-                    bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{keywordId}'").fetchone()[0]
-                records:list[str] = bodyValue.split(" ")
-                for doc in records:
-                    if urlid in str(doc):
-                        doc_fre_pos = doc.split(":")
-                        term_fre[keyword] = int(doc_fre_pos[1])
+                    doc_fre_pos:dict = self.BodyInvertedIndex[keywordId]
+                    # print("body:",doc_fre_pos)
+                # print("urlid:",urlid)
+
+                if urlid not in doc_fre_pos.keys():
+                    continue
+                term_fre[keyword] = doc_fre_pos[urlid]["freq"]
         return term_fre
-    
+
 
     def get_doc_vector(self,urlid:str) -> dict:
         doc_vector = {}
-        if self.cur.execute(f"SELECT value FROM ForwardIndex WHERE urlId='{urlid}'").fetchone() is not None:
-            value:str = self.cur.execute(f"SELECT value FROM ForwardIndex WHERE urlId='{urlid}'").fetchone()[0]
-            keywordIds:list[str] = value.split(" ")
+        if urlid in self.ForwardIndex.keys():
+            keywordIds:list[str] = self.ForwardIndex[urlid]
             for keywordId in keywordIds:
-                if self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{keywordId}'").fetchone() is not None:
-                    bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{keywordId}'").fetchone()[0]
-                    records:list[str] = bodyValue.split(" ")
-                    for record in records:
-                        if urlid in record:
-                            doc_fre_pos:list[str] = record.split(":")
-                            key:str = self.cur.execute(f"SELECT keyword FROM Id2keyword WHERE keywordId='{keywordId}'").fetchone()[0]
-
-                            doc_vector[key] = int(doc_fre_pos[1])
-                            break
-
+                if keywordId in self.BodyInvertedIndex.keys():
+                    doc:dict = self.BodyInvertedIndex[keywordId]
+                    if urlid not in doc.keys():
+                        continue
+                    fre:int = self.BodyInvertedIndex[keywordId][urlid]["freq"]
+                    key:str = self.id2keyword[keywordId]
+                    doc_vector[key] = fre
         return doc_vector
 
 
     # query vector
     def term_fre_query(self, keywords:list[str]) -> dict:
-        
+
         term_fre = {}
         for term in keywords:
             if " " in term:
@@ -261,18 +276,18 @@ class retrieval_function:
                     else:
                         term_fre[term] = term_fre[term] + 1
             else:
-                if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(term,)).fetchone() is None:
+                if term not in self.keyword2id.keys():
                     continue
                 if term not in term_fre:
                     term_fre[term] = 1
                 else:
                     term_fre[term] = term_fre[term] + 1
-            
+
         # print(term_fre)
         return term_fre
-    
+
     #calculate_doc_weight return whe weightlist(document vector)
-    def calculate_doc_weights(self, urlid:str, term_fre:dict, title:bool=False) -> dict: 
+    def calculate_doc_weights(self, urlid:str, term_fre:dict, title:bool=False) -> dict:
         weightList = {} # (keyword : weight)
         if len(list(term_fre.values())) == 0:
             return {}
@@ -285,18 +300,18 @@ class retrieval_function:
                 weightList[term] = term_fre[term] * idf / tf_max
             else:   #single word
                 # print(term)
-                keywordId = self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(term,)).fetchone()[0]
+                keywordId = self.keyword2id[term]
                 if title:
-                    bodyValue:str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{keywordId}'").fetchone()[0]
+                    doc_fre_pos:dict = self.TitleInvertedIndex[keywordId]
                 else:
-                    bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{keywordId}'").fetchone()[0]
-                records = bodyValue.split(" ")
-                df = len(records)
+                    doc_fre_pos:dict = self.BodyInvertedIndex[keywordId]
+
+                df = len(doc_fre_pos.keys())
                 idf = np.log2(self.N/df)
                 weightList[term] = term_fre[term] * idf / tf_max
         return weightList
 
-    
+
     def calculate_cos_similarity(self,query_vector:dict, doc_vector:dict) -> float:
 
         #calculate the norm of query vector
@@ -319,9 +334,9 @@ class retrieval_function:
 
         if norm_query*norm_doc == 0:
             return 0
-        
+
         return dot_product/(norm_query*norm_doc)
-    
+
     def get_score(self,urlid:str, query:list[str]) -> float:
         if len(query) == 0:
             return 0
@@ -349,27 +364,61 @@ class retrieval_function:
         # print(title_sim)
 
         return (5*title_sim+body_sim)
-    
-    def get_result(self,urlid:str, query:list[str])->resultItems:
-        score:float = self.get_score(urlid,query)
-        title:str = self.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
-        url:str = self.cur.execute(f"SELECT url FROM id2url WHERE urlId='{urlid}'").fetchone()[0]
-        tv = self.term_fre_doc(urlid,query,True)
-        bv = self.term_fre_doc(urlid,query,False)
-        for key in tv.keys():
-            if key in bv.keys():
-                bv[key] = bv[key] + tv[key]
-            else:
-                bv[key] = tv[key]
-        # parentLinks
-        if self.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone() is not None:
-            childLinks= self.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone()[0]
-            child= childLinks.split(" ")
-        else:
-            child = None
-        
-        return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child)
 
+def get_result(rf:retrieval_function,urlid:str, query:list[str])->resultItems:
+    score:float = rf.get_score(urlid,query)
+    title:str = rf.Title[urlid]
+    url:str = rf.id2url[urlid]
+    tv = rf.term_fre_doc(urlid,query,True)
+    bv = rf.term_fre_doc(urlid,query,False)
+    for key in tv.keys():
+        if key in bv.keys():
+            bv[key] = bv[key] + tv[key]
+        else:
+            bv[key] = tv[key]
+    if urlid in rf.parent_pages.keys():
+        parentLinks = rf.parent_pages[urlid]
+    else:
+        parentLinks = None
+    if urlid in rf.child_pages.keys():
+        childLinks= rf.child_pages[urlid]
+    else:
+        childLinks = None
+
+    return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=parentLinks,childLinks=childLinks)
+
+    # score:float = rf.get_score(urlid,query)
+    # title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
+    # url:str = rf.cur.execute(f"SELECT url FROM id2url WHERE urlId='{urlid}'").fetchone()[0]
+    # tv = rf.term_fre_doc(urlid,query,True)
+    # bv = rf.term_fre_doc(urlid,query,False)
+    # for key in tv.keys():
+    #     if key in bv.keys():
+    #         bv[key] = bv[key] + tv[key]
+    #     else:
+    #         bv[key] = tv[key]
+    # # parentLinks
+    # if rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone() is not None:
+    #     childLinks= rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone()[0]
+    #     child= childLinks.split(" ")
+    # else:
+    #     child = None
+
+    # return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child)
+
+
+
+
+
+def get_AllResult(prompt:str) :
+    rf = retrieval_function()
+    results = []
+    query:list[str] = rf.splitPrompt(prompt)
+    urlids:list[str] = rf.get_relevant_urlid(query)
+    print("len:",len(urlids))
+    for urlid in urlids:
+        x = get_result(rf,urlid,query)
+        results.append(x)
         # score:float = rf.get_score(urlid,query)
         # title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
         # url:str = rf.cur.execute(f"SELECT url FROM id2url WHERE urlId='{urlid}'").fetchone()[0]
@@ -386,53 +435,18 @@ class retrieval_function:
         #     child= childLinks.split(" ")
         # else:
         #     child = None
-        
-        # return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child)
-        
 
 
+        # results.append(resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child))
 
 
-    def get_AllResult(self,prompt:str) :
-        results = []
-        query:list[str] = self.splitPrompt(prompt)
-        urlids:list[str] = self.get_relevant_urlid(query)
-        for urlid in urlids:
-            x = self.get_result(urlid,query)
-            results.append(x)
-            # score:float = rf.get_score(urlid,query)
-            # title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
-            # url:str = rf.cur.execute(f"SELECT url FROM id2url WHERE urlId='{urlid}'").fetchone()[0]
-            # tv = rf.term_fre_doc(urlid,query,True)
-            # bv = rf.term_fre_doc(urlid,query,False)
-            # for key in tv.keys():
-            #     if key in bv.keys():
-            #         bv[key] = bv[key] + tv[key]
-            #     else:
-            #         bv[key] = tv[key]
-            # # parentLinks
-            # if rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone() is not None:
-            #     childLinks= rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone()[0]
-            #     child= childLinks.split(" ")
-            # else:
-            #     child = None
-
-            
-            # results.append(resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child))
-        # with Pool(10) as pool:
-        #     p = partial(self.get_result,self=self,query=query)
-        #     results = pool.map(p,urlids)
-        # pool = Pool(10)
-        # p = partial(self.get_result,query=query)
-        # results = pool.map(p,urlids)
- 
-        return results
+    return results
 
 
 
 
 if __name__ == '__main__':
-    
+
     rf = retrieval_function()
     # item = rf.get_result()
 
@@ -516,7 +530,7 @@ if __name__ == '__main__':
     # # test calculate_phrase_df
     # df = rf.calculate_phrase_df(split[0:2])
     # print("df:",df)
-    # df = rf.calculate_phrase_df_fre1 = rf.term_fre_doc("41096512194994237309005844220821308201",["test page","test","page"])
+    # term_fre1 = rf.term_fre_doc("41096512194994237309005844220821308201",["test page","test","page"])
     # print(term_fre1)
     # term_fre2 = rf.term_fre_doc("41096512194994237309005844220821308201",["test page","test","page"],True)
     # print(term_fre2)
@@ -534,32 +548,37 @@ if __name__ == '__main__':
     # print(weight1)
     # weight2 = rf.calculate_doc_weights("41096512194994237309005844220821308201",term_fre2,True)
     # print(weight2)
-   
+
     # #test calculate_cos_similarity()
     # sim_body = rf.calculate_cos_similarity(term_fre_Q,weight1)
     # print(sim_body)
     # sim_title = rf.calculate_cos_similarity(term_fre_Q,weight2)
     # print(sim_title)
 
-    # test get_score()
+    # # test get_score()
     # score = rf.get_score("41096512194994237309005844220821308201",["test page","test","page"])
     # print(score)
- 
+
     # terms = rf.splitPrompt('"hello world" super')
     # print(terms)
 
     # test term_fre_doc()
     # term_fre1 = rf.term_fre_doc("41096512194994237309005844220821308201",split)
-    # term
+    # print(term_fre1)
 
     # test get_result()
+    # print(rf.Title.keys())
+
     from time import time
     start = time()
-    results:list[resultItems] = rf.get_AllResult("hello world")
+    results:list[resultItems] = get_AllResult("hello world")
     end = time()
     print("time: ",end-start)
     print(len(results))
+    i = 1
     for result in results:
+        print(i)
+        i += 1
         print(result.score)
     # test:str = "hkust"
     # testSplit = test.split(" ")
@@ -572,7 +591,7 @@ if __name__ == '__main__':
     #     print("None")
     # else:
     #     keywordid:str = rf.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(hello[0],)).fetchone()[0]
-    
+
     # value:str = rf.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId=?",(keywordid,)).fetchone()[0]
     # docs = value.split(" ")
     # print("len: ",len(docs))
@@ -585,3 +604,6 @@ if __name__ == '__main__':
 
     # pageSize = rf.cur.execute("SELECT size FROM PageSize WHERE urlId='311859208299266180936519881020383222841'").fetchone()[0]
     # print(value)
+    # rf.prepare()
+    # dic:dict = rf.TitleInvertedIndex["6668672268896612241852548415349727365"]
+    # print(dic['156034502776903695555964597907068709917']['pos'])
