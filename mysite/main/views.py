@@ -1,5 +1,15 @@
 from django.shortcuts import render, HttpResponse, HttpResponseRedirect
 from .forms import UserQuery
+import sys
+import os
+current_dir = os.path.dirname(os.path.realpath(__file__))
+parent_dir = os.path.dirname(current_dir)
+parent_dir = os.path.dirname(parent_dir)
+
+print("cur: ",current_dir)
+print("par: ",parent_dir)
+sys.path.append(parent_dir)
+from retrieval_function import retrieval_function
 
 # Create your views here.
 def index(response):
@@ -37,5 +47,6 @@ def index(response):
         submitted = True
         query = form.cleaned_data["query"] # this gives you the query the user submitted
         # TODO: uncomment the line below and call the ranking function
-        # results = <ranking_function>()
+        rf = retrieval_function()
+        results = rf.get_AllResult(query)
     return render(response, "index.html", {"results": results, "form":form, "submitted": submitted})

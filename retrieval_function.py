@@ -365,27 +365,27 @@ class retrieval_function:
 
         return (5*title_sim+body_sim)
 
-def get_result(rf:retrieval_function,urlid:str, query:list[str])->resultItems:
-    score:float = rf.get_score(urlid,query)
-    title:str = rf.Title[urlid]
-    url:str = rf.id2url[urlid]
-    tv = rf.term_fre_doc(urlid,query,True)
-    bv = rf.term_fre_doc(urlid,query,False)
-    for key in tv.keys():
-        if key in bv.keys():
-            bv[key] = bv[key] + tv[key]
+    def get_result(self,urlid:str, query:list[str])->resultItems:
+        score:float = self.get_score(urlid,query)
+        title:str = self.Title[urlid]
+        url:str = self.id2url[urlid]
+        tv = self.term_fre_doc(urlid,query,True)
+        bv = self.term_fre_doc(urlid,query,False)
+        for key in tv.keys():
+            if key in bv.keys():
+                bv[key] = bv[key] + tv[key]
+            else:
+                bv[key] = tv[key]
+        if urlid in self.parent_pages.keys():
+            parentLinks = self.parent_pages[urlid]
         else:
-            bv[key] = tv[key]
-    if urlid in rf.parent_pages.keys():
-        parentLinks = rf.parent_pages[urlid]
-    else:
-        parentLinks = None
-    if urlid in rf.child_pages.keys():
-        childLinks= rf.child_pages[urlid]
-    else:
-        childLinks = None
+            parentLinks = None
+        if urlid in self.child_pages.keys():
+            childLinks= self.child_pages[urlid]
+        else:
+            childLinks = None
 
-    return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=parentLinks,childLinks=childLinks)
+        return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=parentLinks,childLinks=childLinks)
 
     # score:float = rf.get_score(urlid,query)
     # title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
@@ -410,37 +410,17 @@ def get_result(rf:retrieval_function,urlid:str, query:list[str])->resultItems:
 
 
 
-def get_AllResult(prompt:str) :
-    rf = retrieval_function()
-    results = []
-    query:list[str] = rf.splitPrompt(prompt)
-    urlids:list[str] = rf.get_relevant_urlid(query)
-    print("len:",len(urlids))
-    for urlid in urlids:
-        x = get_result(rf,urlid,query)
-        results.append(x)
-        # score:float = rf.get_score(urlid,query)
-        # title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
-        # url:str = rf.cur.execute(f"SELECT url FROM id2url WHERE urlId='{urlid}'").fetchone()[0]
-        # tv = rf.term_fre_doc(urlid,query,True)
-        # bv = rf.term_fre_doc(urlid,query,False)
-        # for key in tv.keys():
-        #     if key in bv.keys():
-        #         bv[key] = bv[key] + tv[key]
-        #     else:
-        #         bv[key] = tv[key]
-        # # parentLinks
-        # if rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone() is not None:
-        #     childLinks= rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone()[0]
-        #     child= childLinks.split(" ")
-        # else:
-        #     child = None
-
-
-        # results.append(resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child))
-
-
-    return results
+    def get_AllResult(self,prompt:str) :
+        # rf = retrieval_function()
+        results = []
+        query:list[str] = self.splitPrompt(prompt)
+        urlids:list[str] = self.get_relevant_urlid(query)
+        print("len:",len(urlids))
+        for urlid in urlids:
+            x = self.get_result(urlid,query)
+            results.append(x)
+        results.sort(key = lambda x: x.score,reverse=True)
+        return results[:50]
 
 
 
@@ -571,13 +551,13 @@ if __name__ == '__main__':
 
     from time import time
     start = time()
-    results:list[resultItems] = get_AllResult("hello world")
+    results:list[resultItems] = rf.get_AllResult("hello world movie")
     end = time()
     print("time: ",end-start)
     print(len(results))
     i = 1
     for result in results:
-        print(i)
+        # print(i)
         i += 1
         print(result.score)
     # test:str = "hkust"
