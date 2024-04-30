@@ -164,37 +164,6 @@ class retrieval_function:
         return True
 
 
-    # def check_phrase(self, urlid:str, phrase:list[str], len_phrase:int, check_word_index:int, check_pos:int,title:bool = False)->bool:
-    #     if check_word_index == len_phrase: # all words in phrase have been checked
-    #         return True
-    #     else:
-    #         word:str = phrase[check_word_index]
-    #         if self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone() is None:
-    #             # print("keyword2id")
-    #             return False
-    #         wordId:str = self.cur.execute(f"SELECT keywordId FROM keyword2id WHERE keyword=?",(word,)).fetchone()[0]
-    #         if title:
-    #             if self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
-    #                 # print("invertedindex")
-    #                 return False
-    #             bodyValue:str = self.cur.execute(f"SELECT value FROM TitleInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
-    #         else:
-    #             if self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone() is None:
-    #                 # print("invertedindex")
-    #                 return False
-    #             bodyValue:str = self.cur.execute(f"SELECT value FROM BodyInvertedIndex WHERE keywordId='{wordId}'").fetchone()[0]
-
-    #         records:list[str] = bodyValue.split(" ")
-    #         for record in records:
-    #             # print(record)
-    #             if urlid in record:
-    #                 doc_fre_pos = record.split(":")
-    #                 positions = doc_fre_pos[2].split(",")
-    #                 if str(check_pos) in positions:
-    #                     return self.check_phrase(urlid,phrase,len_phrase,check_word_index+1,check_pos+1)
-    #                 else:
-    #                     return False
-
     def term_fre_doc(self,urlid:str,keywords:list[str],title:bool = False) -> dict:
         term_fre = {}
         for keyword in keywords:
@@ -202,6 +171,7 @@ class retrieval_function:
                 fre:int = 0
                 phrase:list[str] = keyword.split(" ")
                 table = {}
+                flag:bool = True
                 for word in phrase:
                     inner_table = {}
                     wordId:str = self.keyword2id[word]
@@ -210,9 +180,14 @@ class retrieval_function:
                     else:
                         doc_fre_pos:dict = self.BodyInvertedIndex[wordId]
 
+                    if urlid not in doc_fre_pos.keys():
+                        flag = False
+                        break
 
                     table[word] = doc_fre_pos[urlid]['pos']
 
+                if flag == False:
+                    continue
 
                 pos_of_first_word:list[int] = table[phrase[0]]
                 for pos in pos_of_first_word:
@@ -406,20 +381,48 @@ class retrieval_function:
 
     # return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child)
 
+    def getTop5FreqWords(self, urlId: str ) -> list[str]:
+        if urlId not in self.ForwardIndex.keys():
+            return None
+        wordids = self.ForwardIndex[urlId]
+        keyword_fre = {}
+        for id in wordids:
+            if id in self.BodyInvertedIndex.keys():
+                keyword_fre[self.id2keyword[id]] = self.BodyInvertedIndex[id][urlId]['freq']
+                if id in self.TitleInvertedIndex.keys():
+                    keyword_fre[self.id2keyword[id]] = keyword_fre[self.id2keyword[id]]
+            else:
+                keyword_fre[self.id2keyword[id]] = self.TitleInvertedIndex[id][urlId]['freq']
+
+        keywords = list(keyword_fre.keys())
+        keywords.sort(key= lambda x : keyword_fre[x],reverse=True)
+        return keywords[:5]
+
+    def getSimilarPages(self, urlId: str) -> list[str]:
+        top5words: list[str] = self.getTop5FreqWords(urlId)
+        similarPages = self.get_AllResult("",top5words)
+        return similarPages
+
+    def selectWord(self,selectedWords:list[str]):
+        return self.get_AllResult("",selectedWords)
 
 
 
 
-    def get_AllResult(self,prompt:str) :
+
+    def get_AllResult(self,prompt:str,extraword:list[str]) :
         # rf = retrieval_function()
         results = []
         query:list[str] = self.splitPrompt(prompt)
+        query.extend(extraword)
         urlids:list[str] = self.get_relevant_urlid(query)
-        print("len:",len(urlids))
+        # print("len:",len(urlids))
         for urlid in urlids:
             x = self.get_result(urlid,query)
             results.append(x)
         results.sort(key = lambda x: x.score,reverse=True)
+        if len(results) < 50:
+            return results
         return results[:50]
 
 
@@ -549,17 +552,30 @@ if __name__ == '__main__':
     # test get_result()
     # print(rf.Title.keys())
 
-    from time import time
-    start = time()
-    results:list[resultItems] = rf.get_AllResult("hello world movie")
-    end = time()
-    print("time: ",end-start)
-    print(len(results))
-    i = 1
-    for result in results:
-        # print(i)
-        i += 1
-        print(result.score)
+    # test getTop5FreqWords()
+    # top5 = rf.getTop5FreqWords('247040276485521844002811826849338028230')
+    # print(top5)
+
+    # test
+    # similar_page = rf.getSimilarPages("247040276485521844002811826849338028230")
+    # for page in similar_page:
+    #     print(page.score)
+
+
+
+
+    # from time import time
+    # start = time()
+    # results:list[resultItems] = rf.get_AllResult('hello world movie "test page"')
+    # results:list[resultItems] = rf.get_AllResult('')
+    # end = time()
+    # print("time: ",end-start)
+    # print(len(results))
+    # i = 1
+    # for result in results:
+    #     # print(i)
+    #     i += 1
+    #     print(result.score)
     # test:str = "hkust"
     # testSplit = test.split(" ")
     # print(testSplit)
@@ -587,3 +603,7 @@ if __name__ == '__main__':
     # rf.prepare()
     # dic:dict = rf.TitleInvertedIndex["6668672268896612241852548415349727365"]
     # print(dic['156034502776903695555964597907068709917']['pos'])
+
+    # for docid in rf.ForwardIndex.keys():
+    #     print(docid)
+    # print(len(rf.ForwardIndex.keys()))
