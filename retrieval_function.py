@@ -5,10 +5,12 @@ from ContentExtractor import ContentExtractor
 
 
 class resultItems:
-    def __init__(self,score,title,url,keywords=None,parentLinks=None,childLinks=None):
+    def __init__(self,score,title,url,date, size, keywords=None,parentLinks=None,childLinks=None):
         self.score = score
         self.title = title
         self.url = url
+        self.date = date
+        self.size = size
         self.keywords = keywords
         self.parentLinks = parentLinks
         self.childLinks = childLinks
@@ -31,6 +33,8 @@ class retrieval_function:
         self.parent_pages: dict = {}
         self.Title: dict = {}
         self.id2url: dict = {}
+        self.ModDate = {}
+        self.PageSize = {}
         self.prepare()
 
     def prepare(self):
@@ -56,6 +60,10 @@ class retrieval_function:
         self.child_pages = {i[0]: i[1].split(' ') for i in result}
         result = self.cur.execute(f"SELECT * FROM id2url").fetchall()
         self.id2url = {i[0]: i[1] for i in result}
+        result = self.cur.execute(f"SELECT * FROM ModDate").fetchall()
+        self.ModDate = {i[0]: i[1] for i in result}
+        result = self.cur.execute(f"SELECT * FROM PageSize").fetchall()
+        self.PageSize = {i[0]: i[1] for i in result}
 
 
     def splitPrompt(self, prompt:str) -> list:
@@ -176,8 +184,14 @@ class retrieval_function:
                     inner_table = {}
                     wordId:str = self.keyword2id[word]
                     if title:
+                        if wordId not in self.TitleInvertedIndex.keys():
+                            flag = False
+                            continue
                         doc_fre_pos:dict = self.TitleInvertedIndex[wordId]
                     else:
+                        if wordId not in self.BodyInvertedIndex.keys():
+                            flag = False
+                            continue
                         doc_fre_pos:dict = self.BodyInvertedIndex[wordId]
 
                     if urlid not in doc_fre_pos.keys():
@@ -271,6 +285,8 @@ class retrieval_function:
             if " " in term: #phrase
                 words = str(term).split(" ")
                 df = self.calculate_phrase_df(words,title)
+                if df == 0:
+                    continue
                 idf = np.log2(self.N/df)
                 weightList[term] = term_fre[term] * idf / tf_max
             else:   #single word
@@ -332,10 +348,10 @@ class retrieval_function:
 
         #calculate title similarity
 
-        title_vector:dict = rf.term_fre_doc(urlid,query,True)
+        title_vector:dict = self.term_fre_doc(urlid,query,True)
         # calculate weighted vector
-        weighted_title_vector: dict = rf.calculate_doc_weights(urlid,title_vector,True)
-        title_sim:float = rf.calculate_cos_similarity(weighted_title_vector,query_vector)
+        weighted_title_vector: dict = self.calculate_doc_weights(urlid,title_vector,True)
+        title_sim:float = self.calculate_cos_similarity(weighted_title_vector,query_vector)
         # print(title_sim)
 
         return (5*title_sim+body_sim)
@@ -344,6 +360,8 @@ class retrieval_function:
         score:float = self.get_score(urlid,query)
         title:str = self.Title[urlid]
         url:str = self.id2url[urlid]
+        modDate = self.ModDate[urlid]
+        pageSize = self.PageSize[urlid]
         tv = self.term_fre_doc(urlid,query,True)
         bv = self.term_fre_doc(urlid,query,False)
         for key in tv.keys():
@@ -351,16 +369,24 @@ class retrieval_function:
                 bv[key] = bv[key] + tv[key]
             else:
                 bv[key] = tv[key]
+        keyword = '; '.join(f"{key} {value}" for key, value in bv.items())
         if urlid in self.parent_pages.keys():
-            parentLinks = self.parent_pages[urlid]
+            parentLinks = []
+            parents_links_ids = self.parent_pages[urlid]
+            for id in parents_links_ids:
+                parentLinks.append(self.id2url[id])
         else:
-            parentLinks = None
+            parentLinks = ["This page has no parent links"]
         if urlid in self.child_pages.keys():
-            childLinks= self.child_pages[urlid]
+            childLinks= []
+            child_links_ids = self.child_pages[urlid]
+            for id in child_links_ids:
+                childLinks.append(self.id2url[id])
         else:
-            childLinks = None
+            childLinks = ["This page has no child links"]
 
-        return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=parentLinks,childLinks=childLinks)
+        return resultItems(score=score,title=title,url=url,date=modDate,size=pageSize,keywords=keyword,parentLinks=parentLinks,childLinks=childLinks)
+        # return resultItems(0, "Test page", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm" , "1-1-1111", 100, {'a': 10, 'b': 20}, ["parent 1", "parent 2"], ["child 1"])
 
     # score:float = rf.get_score(urlid,query)
     # title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
@@ -410,7 +436,7 @@ class retrieval_function:
 
 
 
-    def get_AllResult(self,prompt:str,extraword:list[str]) :
+    def get_AllResult(self,prompt:str,extraword:list[str] = []) :
         # rf = retrieval_function()
         results = []
         query:list[str] = self.splitPrompt(prompt)
