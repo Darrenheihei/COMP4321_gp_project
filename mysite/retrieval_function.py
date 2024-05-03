@@ -417,8 +417,11 @@ class retrieval_function:
                 keyword_fre[self.id2keyword[id]] = self.BodyInvertedIndex[id][urlId]['freq']
                 if id in self.TitleInvertedIndex.keys():
                     keyword_fre[self.id2keyword[id]] = keyword_fre[self.id2keyword[id]]
-            else:
-                keyword_fre[self.id2keyword[id]] = self.TitleInvertedIndex[id][urlId]['freq']
+            if id in self.TitleInvertedIndex.keys():
+                if self.id2keyword[id] in keyword_fre.keys():
+                    keyword_fre[self.id2keyword[id]] = keyword_fre[self.id2keyword[id]] + self.TitleInvertedIndex[id][urlId]['freq']
+                else:
+                    keyword_fre[self.id2keyword[id]] = self.TitleInvertedIndex[id][urlId]['freq']
 
         keywords = list(keyword_fre.keys())
         keywords.sort(key= lambda x : keyword_fre[x],reverse=True)
