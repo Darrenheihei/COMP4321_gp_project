@@ -79,9 +79,9 @@ class retrieval_function:
             words:list[str] = self.ce.splitWords(ph)
             words = self.ss.process(words)
             # add single term in the phrase
-            for word in words:
-                if word in self.keyword2id.keys():
-                    terms.append(word)
+            # for word in words:
+            #     if word in self.keyword2id.keys():
+            #         terms.append(word)
             # combine the split terms to phrase
             if self.checkAllWordsHaveId(words):
                 combine:str = ""
@@ -100,14 +100,18 @@ class retrieval_function:
         return terms
 
     def get_relevant_urlid(self,terms:list[str]) -> list:
-
+        terms_copy = terms.copy()
         urlids:set = set()
-        for term in terms:
+        for term in terms_copy:
+            if " " in term:
+                split_term = term.split(" ")
+                terms_copy.extend(split_term)
+
+        for term in terms_copy:
             if term in self.keyword2id.keys():
                 keywordId:str = self.keyword2id[term]
             else:
                 continue
-
             if keywordId in self.TitleInvertedIndex.keys():
                 docs = self.TitleInvertedIndex[keywordId].keys()
                 for doc in docs:
@@ -128,6 +132,7 @@ class retrieval_function:
             wordId:str = self.keyword2id[word]
             if title:
                 if wordId not in self.TitleInvertedIndex.keys():
+                    print("not found word: ",word)
                     return 0
                 doc_fre_pos:dict = self.TitleInvertedIndex[wordId]
             else:
@@ -136,11 +141,7 @@ class retrieval_function:
                 doc_fre_pos:dict = self.BodyInvertedIndex[wordId]
             for doc in doc_fre_pos.keys():
                 inner_table[doc] = doc_fre_pos[doc]['pos']
-                # print(doc_fre_pos[0],":",inner_table[doc_fre_pos[0]])
-
             table[word] = inner_table
-            # print(f"len of {word}: ",len(table[word]))
-
         first_inner_table:dict = table[phrase[0]]
         for doc in (first_inner_table.keys()):
             flag:bool = True
@@ -148,7 +149,6 @@ class retrieval_function:
                 if doc not in dict(table[phrase[i]]).keys():
                     flag = False
                     break
-
             if flag == False: # the doc not have all words in phrase
                 continue
 
@@ -156,7 +156,7 @@ class retrieval_function:
                 flag = True
                 for i in range(1,len(phrase)):
                     inner_table:dict = table[phrase[i]]
-                    if (pos+1) not in inner_table[doc]:
+                    if (pos+i) not in inner_table[doc]:
                         flag = False
                         break
                 if flag == True:
@@ -207,7 +207,7 @@ class retrieval_function:
                 for pos in pos_of_first_word:
                     for i in range(1,len(phrase)):
                         pos_ls:list[int] = table[phrase[i]]
-                        if (pos+1) not in pos_ls:
+                        if (pos+i) not in pos_ls:
                             break
                         if i == (len(phrase) - 1 ):
                             fre += 1
@@ -354,7 +354,7 @@ class retrieval_function:
         title_sim:float = self.calculate_cos_similarity(weighted_title_vector,query_vector)
         # print(title_sim)
 
-        return (5*title_sim+body_sim)
+        return (3*title_sim+body_sim)
 
     def get_result(self,urlid:str, query:list[str])->resultItems:
         score:float = self.get_score(urlid,query)
@@ -362,14 +362,24 @@ class retrieval_function:
         url:str = self.id2url[urlid]
         modDate = self.ModDate[urlid]
         pageSize = self.PageSize[urlid]
-        tv = self.term_fre_doc(urlid,query,True)
-        bv = self.term_fre_doc(urlid,query,False)
-        for key in tv.keys():
-            if key in bv.keys():
-                bv[key] = bv[key] + tv[key]
-            else:
-                bv[key] = tv[key]
-        keyword = '; '.join(f"{key} {value}" for key, value in bv.items())
+        keyword_fre = {}
+        top5:list[str] = self.getTop5FreqWords(urlid)
+        for word in top5:
+            wordid = self.keyword2id[word]
+            if wordid in self.TitleInvertedIndex.keys():
+                # print(self.TitleInvertedIndex[wordid])
+                if urlid in self.TitleInvertedIndex[wordid]:
+                    keyword_fre[word] = self.TitleInvertedIndex[wordid][urlid]['freq']
+                    # print(self.TitleInvertedIndex[wordid][urlid]['freq'])
+            if wordid in self.BodyInvertedIndex.keys():
+                # print(self.BodyInvertedIndex[wordid])
+                if urlid in self.BodyInvertedIndex[wordid].keys():
+                    if word in keyword_fre.keys():
+                        keyword_fre[word] = keyword_fre[word] + self.BodyInvertedIndex[wordid][urlid]['freq']
+                    else:
+                        keyword_fre[word] = self.BodyInvertedIndex[wordid][urlid]['freq']
+
+        keyword = '; '.join(f"{key} {value}" for key, value in keyword_fre.items())
         if urlid in self.parent_pages.keys():
             parentLinks = []
             parents_links_ids = self.parent_pages[urlid]
@@ -379,7 +389,7 @@ class retrieval_function:
             parentLinks = ["This page has no parent links"]
         if urlid in self.child_pages.keys():
             childLinks= []
-            child_links_ids = self.child_pages[urlid]
+            child_links_ids = self.child_pages[urlid][:10]
             for id in child_links_ids:
                 childLinks.append(self.id2url[id])
         else:
@@ -414,22 +424,22 @@ class retrieval_function:
         keyword_fre = {}
         for id in wordids:
             if id in self.BodyInvertedIndex.keys():
-                keyword_fre[self.id2keyword[id]] = self.BodyInvertedIndex[id][urlId]['freq']
-                if id in self.TitleInvertedIndex.keys():
-                    keyword_fre[self.id2keyword[id]] = keyword_fre[self.id2keyword[id]]
+                if urlId in self.BodyInvertedIndex[id].keys():
+                    keyword_fre[self.id2keyword[id]] = self.BodyInvertedIndex[id][urlId]['freq']
             if id in self.TitleInvertedIndex.keys():
-                if self.id2keyword[id] in keyword_fre.keys():
-                    keyword_fre[self.id2keyword[id]] = keyword_fre[self.id2keyword[id]] + self.TitleInvertedIndex[id][urlId]['freq']
-                else:
-                    keyword_fre[self.id2keyword[id]] = self.TitleInvertedIndex[id][urlId]['freq']
+                if urlId in self.TitleInvertedIndex[id]:
+                    if self.id2keyword[id] in keyword_fre:
+                        keyword_fre[self.id2keyword[id]] = keyword_fre[self.id2keyword[id]] + self.TitleInvertedIndex[id][urlId]['freq']
+                    else:
+                        keyword_fre[self.id2keyword[id]] = self.TitleInvertedIndex[id][urlId]['freq']
 
         keywords = list(keyword_fre.keys())
         keywords.sort(key= lambda x : keyword_fre[x],reverse=True)
         return keywords[:5]
 
-    def getSimilarPages(self, urlId: str) -> list[str]:
+    def getSimilarPages(self, original_query:str,urlId: str) -> list[resultItems]:
         top5words: list[str] = self.getTop5FreqWords(urlId)
-        similarPages = self.get_AllResult("",top5words)
+        similarPages = self.get_AllResult(original_query,top5words)
         return similarPages
 
     def selectWord(self,selectedWords:list[str]):
@@ -440,18 +450,15 @@ class retrieval_function:
 
 
     def get_AllResult(self,prompt:str,extraword:list[str] = []) :
-        # rf = retrieval_function()
         results = []
         query:list[str] = self.splitPrompt(prompt)
         query.extend(extraword)
         urlids:list[str] = self.get_relevant_urlid(query)
-        # print("len:",len(urlids))
         for urlid in urlids:
-            x = self.get_result(urlid,query)
-            results.append(x)
+            x:resultItems = self.get_result(urlid,query)
+            if x.score > 0:
+                results.append(x)
         results.sort(key = lambda x: x.score,reverse=True)
-        if len(results) < 50:
-            return results
         return results[:50]
 
 
@@ -589,6 +596,12 @@ if __name__ == '__main__':
     # similar_page = rf.getSimilarPages("247040276485521844002811826849338028230")
     # for page in similar_page:
     #     print(page.score)
+    # print(rf.getTop5FreqWords('120882259239556584285953046974544627605'))
+    # results:list[resultItems] = rf.get_AllResult("hello")
+    # for result in results:
+    #     print(result.keywords)
+    # r = rf.get_result('120882259239556584285953046974544627605',['disney', 'imdb', 'user', 'movi', 'rate'])
+    # print(r.keywords)
 
 
 
@@ -596,7 +609,7 @@ if __name__ == '__main__':
     # from time import time
     # start = time()
     # results:list[resultItems] = rf.get_AllResult('hello world movie "test page"')
-    # results:list[resultItems] = rf.get_AllResult('')
+    # # results:list[resultItems] = rf.get_AllResult('')
     # end = time()
     # print("time: ",end-start)
     # print(len(results))
@@ -636,3 +649,20 @@ if __name__ == '__main__':
     # for docid in rf.ForwardIndex.keys():
     #     print(docid)
     # print(len(rf.ForwardIndex.keys()))
+    # similar = rf.getSimilarPages("hello world",'120882259239556584285953046974544627605')
+    # scores = [x.score for x in similar]
+    # print(scores)
+
+    # results = rf.splitPrompt('"movie index page"')
+    # # print(results)
+    # urlids = rf.get_relevant_urlid(results)
+    # # print(urlids)
+    # term_inPhrase = results[0].split(" ")
+    # print(term_inPhrase)
+    # df = rf.calculate_phrase_df(term_inPhrase,title=True)
+    # print(df)
+    # term_fre_Q = rf.term_fre_query(results)
+    # print(term_fre_Q)
+    # term_fre_D = rf.term_fre_doc('307107437884666448576352896230635319098',results,True)
+    # print(term_fre_D)
+
