@@ -3,3 +3,5 @@ from .models import SearchResult
 
 # Register your models here.
 admin.site.register(SearchResult)
+admin.site.register(EachUserQueryHistory)
+admin.site.register(UserQuery)
