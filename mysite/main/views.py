@@ -5,6 +5,7 @@ import uuid
 from django.contrib.auth import get_user_model
 from django.views.decorators.csrf import csrf_protect
 import json
+from retrieval_function import retrieval_function
 
 # Create your views here.\
 
@@ -85,7 +86,8 @@ def index(request):
             user_query_history = EachUserQueryHistory.objects.get(cookie_id=cookie_id)
 
             # TODO: uncomment the line below and call the ranking function
-            # results = <ranking_function>()
+            rf = retrieval_function()
+            results = rf.get_AllResult(query_text)
 
             # check the query exist or not already in database or the query is just emprt
             existing_query = UserQuery.objects.filter(history=user_query_history, query=query_text).first()
