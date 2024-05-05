@@ -10,6 +10,8 @@ class SearchResult(models.Model):
 
 class EachUserQueryHistory(models.Model):
     cookie_id = models.CharField(max_length=255, unique=True, primary_key=True)
+    request = models.BooleanField(default=False) # true if user request reload, so that user can get results in GET from views.py
+    request_query = models.CharField(max_length=200) # the request query fot the reload 
 
 class UserQuery(models.Model):
     history = models.ForeignKey(
@@ -22,4 +24,3 @@ class UserQuery(models.Model):
 
     def __str__(self):
         return self.query
-

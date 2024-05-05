@@ -19,7 +19,7 @@
                     })
                     .then((response => {
                         if (response.ok) {
-                            window.location.reload();  // reload the page to reflect the changes
+                            window.location.reload(true);  // reload the page to reflect the changes
                         } else {
                             throw new Error('Failed to fetch');
                         }

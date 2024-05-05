@@ -23,6 +23,19 @@ class resultItem:
         else:
             self.childLinks = ["This page has no child links"]
 
+    def toDict(self):
+        return {
+            'score': self.score,
+            'title': self.title,
+            'url': self.url,
+            'date': self.date,
+            'size': self.size,
+            'keywords': self.keywords,
+            'parentLinks': self.parentLinks,
+            'childLinks': self.childLinks,
+            'top5Words': self.top5Words
+        }
+
 
 class retrieval_function:
     def __init__(self):
