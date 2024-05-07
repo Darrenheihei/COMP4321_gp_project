@@ -4,23 +4,33 @@ from StopStem import StopStem
 from ContentExtractor import ContentExtractor
 
 
-class resultItems:
-    def __init__(self,score,title,url,date, size, keywords=None,parentLinks=None,childLinks=None):
+class resultItem:
+    def __init__(self, score, title, url, date, size, keywords, parentLinks, childLinks, top5Words):
         self.score = score
         self.title = title
         self.url = url
         self.date = date
         self.size = size
-        self.keywords = keywords
-        self.parentLinks = parentLinks
-        self.childLinks = childLinks
+        self.keywords = '; '.join(f"{key} {value}" for key, value in keywords.items())
+        self.top5Words = top5Words
+        if parentLinks != []:
+            self.parentLinks = parentLinks
+        else:
+            self.parentLinks = ["This page has no parent links"]
+
+        if childLinks != []:
+            self.childLinks = childLinks
+        else:
+            self.childLinks = ["This page has no child links"]
+
+
 
 
 class retrieval_function:
     def __init__(self):
         self.con = sqlite3.connect('project.db')
         self.cur = self.con.cursor()
-        documents = self.cur.execute("SELECT * FROM ForwardIndex").fetchall()
+        documents = self.cur.execute("SELECT * FROM CrawledPage").fetchall()
         self.ss = StopStem()
         self.ce = ContentExtractor()
         self.N:int = len(documents)  # number of documents
@@ -78,10 +88,7 @@ class retrieval_function:
         for ph in phrase:
             words:list[str] = self.ce.splitWords(ph)
             words = self.ss.process(words)
-            # add single term in the phrase
-            # for word in words:
-            #     if word in self.keyword2id.keys():
-            #         terms.append(word)
+
             # combine the split terms to phrase
             if self.checkAllWordsHaveId(words):
                 combine:str = ""
@@ -132,7 +139,7 @@ class retrieval_function:
             wordId:str = self.keyword2id[word]
             if title:
                 if wordId not in self.TitleInvertedIndex.keys():
-                    print("not found word: ",word)
+                    # print("not found word: ",word)
                     return 0
                 doc_fre_pos:dict = self.TitleInvertedIndex[wordId]
             else:
@@ -223,13 +230,12 @@ class retrieval_function:
                     if keywordId not in self.TitleInvertedIndex.keys():
                         continue
                     doc_fre_pos:dict = self.TitleInvertedIndex[keywordId]
-                    # print("title:",doc_fre_pos)
+
                 else:
                     if keywordId not in self.BodyInvertedIndex.keys():
                         continue
                     doc_fre_pos:dict = self.BodyInvertedIndex[keywordId]
-                    # print("body:",doc_fre_pos)
-                # print("urlid:",urlid)
+
 
                 if urlid not in doc_fre_pos.keys():
                     continue
@@ -272,7 +278,7 @@ class retrieval_function:
                 else:
                     term_fre[term] = term_fre[term] + 1
 
-        # print(term_fre)
+
         return term_fre
 
     #calculate_doc_weight return whe weightlist(document vector)
@@ -290,7 +296,7 @@ class retrieval_function:
                 idf = np.log2(self.N/df)
                 weightList[term] = term_fre[term] * idf / tf_max
             else:   #single word
-                # print(term)
+
                 keywordId = self.keyword2id[term]
                 if title:
                     doc_fre_pos:dict = self.TitleInvertedIndex[keywordId]
@@ -298,8 +304,18 @@ class retrieval_function:
                     doc_fre_pos:dict = self.BodyInvertedIndex[keywordId]
 
                 df = len(doc_fre_pos.keys())
+                # print(term,"df:",df)
                 idf = np.log2(self.N/df)
+                # print(term,"idf:",idf)
+                # print(term,"N:",self.N)
+
                 weightList[term] = term_fre[term] * idf / tf_max
+                # if title:
+                #     print('title')
+                # else:
+                #     print('body')
+                # print(term,weightList[term])
+
         return weightList
 
 
@@ -323,6 +339,8 @@ class retrieval_function:
             if term in doc_vector.keys():
                 dot_product += query_vector[term]*doc_vector[term]
 
+        # print(doc_vector)
+
         if norm_query*norm_doc == 0:
             return 0
 
@@ -344,19 +362,19 @@ class retrieval_function:
         # calculate weighted vector
         weighted_body_vector:dict = self.calculate_doc_weights(urlid,doc_vec,False)
         body_sim:float = self.calculate_cos_similarity(query_vector,weighted_body_vector)
-        # print(body_sim)
+
 
         #calculate title similarity
-
         title_vector:dict = self.term_fre_doc(urlid,query,True)
         # calculate weighted vector
         weighted_title_vector: dict = self.calculate_doc_weights(urlid,title_vector,True)
         title_sim:float = self.calculate_cos_similarity(weighted_title_vector,query_vector)
-        # print(title_sim)
+        # print("title: ",title_sim)
+        # print("body: ",body_sim)
 
         return (3*title_sim+body_sim)
 
-    def get_result(self,urlid:str, query:list[str])->resultItems:
+    def get_result(self,urlid:str, query:list[str])->resultItem:
         score:float = self.get_score(urlid,query)
         title:str = self.Title[urlid]
         url:str = self.id2url[urlid]
@@ -367,19 +385,19 @@ class retrieval_function:
         for word in top5:
             wordid = self.keyword2id[word]
             if wordid in self.TitleInvertedIndex.keys():
-                # print(self.TitleInvertedIndex[wordid])
+
                 if urlid in self.TitleInvertedIndex[wordid]:
                     keyword_fre[word] = self.TitleInvertedIndex[wordid][urlid]['freq']
-                    # print(self.TitleInvertedIndex[wordid][urlid]['freq'])
+
             if wordid in self.BodyInvertedIndex.keys():
-                # print(self.BodyInvertedIndex[wordid])
+
                 if urlid in self.BodyInvertedIndex[wordid].keys():
                     if word in keyword_fre.keys():
                         keyword_fre[word] = keyword_fre[word] + self.BodyInvertedIndex[wordid][urlid]['freq']
                     else:
                         keyword_fre[word] = self.BodyInvertedIndex[wordid][urlid]['freq']
 
-        keyword = '; '.join(f"{key} {value}" for key, value in keyword_fre.items())
+
         if urlid in self.parent_pages.keys():
             parentLinks = []
             parents_links_ids = self.parent_pages[urlid]
@@ -395,27 +413,11 @@ class retrieval_function:
         else:
             childLinks = ["This page has no child links"]
 
-        return resultItems(score=score,title=title,url=url,date=modDate,size=pageSize,keywords=keyword,parentLinks=parentLinks,childLinks=childLinks)
-        # return resultItems(0, "Test page", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm" , "1-1-1111", 100, {'a': 10, 'b': 20}, ["parent 1", "parent 2"], ["child 1"])
+        top5words = self.getTop5FreqWords(urlid)
+        top5words = " ".join(top5words)
 
-    # score:float = rf.get_score(urlid,query)
-    # title:str = rf.cur.execute(f"SELECT title FROM Title WHERE urlId='{urlid}'").fetchone()[0]
-    # url:str = rf.cur.execute(f"SELECT url FROM id2url WHERE urlId='{urlid}'").fetchone()[0]
-    # tv = rf.term_fre_doc(urlid,query,True)
-    # bv = rf.term_fre_doc(urlid,query,False)
-    # for key in tv.keys():
-    #     if key in bv.keys():
-    #         bv[key] = bv[key] + tv[key]
-    #     else:
-    #         bv[key] = tv[key]
-    # # parentLinks
-    # if rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone() is not None:
-    #     childLinks= rf.cur.execute(f"SELECT value FROM ChildUrl WHERE urlId='{urlid}'").fetchone()[0]
-    #     child= childLinks.split(" ")
-    # else:
-    #     child = None
+        return resultItem(score=score,title=title,url=url,date=modDate,size=pageSize,keywords=keyword_fre,parentLinks=parentLinks,childLinks=childLinks,top5Words=top5words)
 
-    # return resultItems(score=score,title=title,url=url,keywords=bv,parentLinks=None,childLinks=child)
 
     def getTop5FreqWords(self, urlId: str ) -> list[str]:
         if urlId not in self.ForwardIndex.keys():
@@ -437,17 +439,10 @@ class retrieval_function:
         keywords.sort(key= lambda x : keyword_fre[x],reverse=True)
         return keywords[:5]
 
-    def getSimilarPages(self, original_query:str,urlId: str) -> list[resultItems]:
-        top5words: list[str] = self.getTop5FreqWords(urlId)
-        similarPages = self.get_AllResult(original_query,top5words)
-        return similarPages
+
 
     def selectWord(self,selectedWords:list[str]):
         return self.get_AllResult("",selectedWords)
-
-
-
-
 
     def get_AllResult(self,prompt:str,extraword:list[str] = []) :
         results = []
@@ -455,7 +450,7 @@ class retrieval_function:
         query.extend(extraword)
         urlids:list[str] = self.get_relevant_urlid(query)
         for urlid in urlids:
-            x:resultItems = self.get_result(urlid,query)
+            x:resultItem = self.get_result(urlid,query)
             if x.score > 0:
                 results.append(x)
         results.sort(key = lambda x: x.score,reverse=True)
@@ -653,16 +648,59 @@ if __name__ == '__main__':
     # scores = [x.score for x in similar]
     # print(scores)
 
-    # results = rf.splitPrompt('"movie index page"')
+    # results = rf.splitPrompt('"powerpuff girls movie"')
     # # print(results)
     # urlids = rf.get_relevant_urlid(results)
     # # print(urlids)
     # term_inPhrase = results[0].split(" ")
     # print(term_inPhrase)
-    # df = rf.calculate_phrase_df(term_inPhrase,title=True)
+    # df = rf.calculate_phrase_df(term_inPhrase,title=False)
     # print(df)
     # term_fre_Q = rf.term_fre_query(results)
     # print(term_fre_Q)
-    # term_fre_D = rf.term_fre_doc('307107437884666448576352896230635319098',results,True)
-    # print(term_fre_D)
+    # # term_fre_D = rf.term_fre_doc('307107437884666448576352896230635319098',results,True)
+    # # print(term_fre_D)
 
+    # re:list[resultItem] = rf.get_AllResult('"powerpuff girls movie"')
+    # for i in re:
+    #     print(i.)
+
+    # uid = rf.cur.execute(f"SELECT urlId FROM url2id WHERE url='https://www.cse.ust.hk/~kwtleung/COMP4321/Movie/84.html'").fetchone()[0]
+    # print(uid)
+    # r = rf.getSimilarPages('"powerpuff girls movie"',"273581480638588959161243458125022993277")
+    # for i in r:
+    #     print(i.score)
+
+    # st = rf.getTop5FreqWords("273581480638588959161243458125022993277")
+    # long_str = " ".join(st)
+    # print(long_str)
+    # id = rf.cur.execute(f"SELECT urlId FROM url2id WHERE url='https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm'").fetchone()[0]
+    # rf.get_result(id,["page"])
+    # print(rf.N)
+    # rf.get_AllResult()
+    # print(len(rf.cur.execute("SELECT * FROM CrawledPage").fetchall()))
+    # print(len(rf.cur.execute("SELECT * FROM ForwardIndex").fetchall()))
+
+
+    # cp_list = []
+    # fi_list = []
+    # cp = rf.cur.execute("SELECT * FROM CrawledPage").fetchall()
+    # print("CrawledPage")
+    # for url,id in cp:
+    #     cp_list.append(url)
+    #     # print(url)
+    # cp_list.sort()
+    # for i in cp_list:
+    #     print(i)
+    # print("ForwardIndex")
+    # fi = rf.cur.execute("SELECT * FROM ForwardIndex").fetchall()
+    # for urlid,words in fi:
+    #     url = rf.cur.execute(f'SELECT url FROM id2url WHERE urlId="{urlid}"').fetchone()[0]
+    #     fi_list.append(url)
+    #     # print(url)
+    # fi_list.sort()
+    # for i in fi_list:
+    #     print(i)
+    # con = sqlite3.connect('project.db')
+    # cur = con.cursor()
+    # print(len(cur.execute("SELECT * From ForwardIndex").fetchall()))
