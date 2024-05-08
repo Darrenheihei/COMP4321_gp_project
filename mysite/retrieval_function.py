@@ -30,7 +30,7 @@ class retrieval_function:
     def __init__(self):
         self.con = sqlite3.connect('project.db')
         self.cur = self.con.cursor()
-        documents = self.cur.execute("SELECT * FROM CrawledPage").fetchall()
+        documents = self.cur.execute("SELECT * FROM url2id").fetchall()
         self.ss = StopStem()
         self.ce = ContentExtractor()
         self.N:int = len(documents)  # number of documents
@@ -320,7 +320,7 @@ class retrieval_function:
                 df = len(doc_fre_pos.keys())
                 # print(term,"df:",df)
                 idf = np.log2(self.N/df)
-                # print(term,"idf:",idf)
+                print(term,"idf:",idf)
                 # print(term,"N:",self.N)
 
                 weightList[term] = term_fre[term] * idf / tf_max
@@ -401,6 +401,7 @@ class retrieval_function:
         # print("body: ",body_sim)
         # print("score: ",3*title_sim+body_sim)
         return (3*title_sim+body_sim)
+        # return title_sim
 
     def get_result(self,urlid:str, query:list[str])->resultItem:
         score:float = self.get_score(urlid,query)
@@ -732,4 +733,14 @@ if __name__ == '__main__':
     #     print(i)
     # con = sqlite3.connect('project.db')
     # cur = con.cursor()
-    # print(len(cur.execute("SELECT * From ForwardIndex").fetchall()))
+    # # print(len(cur.execute("SELECT * From keyword2id").fetchall()))
+    # ls = []
+    # for keyword,id in cur.execute("SELECT * From keyword2id").fetchall():
+    #     ls.append(keyword)
+    #     # print(keyword)
+    # ls.sort()
+    # print(ls)
+    # for i in ls:
+    #     print(i)
+    # print('n: ',rf.N)
+    # rf.get_AllResult('')
