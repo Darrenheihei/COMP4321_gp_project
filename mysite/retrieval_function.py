@@ -326,18 +326,23 @@ class retrieval_function:
         for term in query_vector.keys():
             square_sum_query += query_vector[term]**2
         norm_query = square_sum_query**(0.5)
-
+        # print("query norm: ",norm_query)
         #calculate the norm of doc vector
         square_sum_doc: float = 0
         for term in doc_vector.keys():
             square_sum_doc += doc_vector[term]**2
         norm_doc = square_sum_doc**(0.5)
-
+        # print("doc_norm: ",norm_doc)
         # calculate dot product
         dot_product:float = 0
         for term in query_vector.keys():
             if term in doc_vector.keys():
+                # print("query_vector[term]: ",term,query_vector[term])
+                # print("doc_vector[term]: ",term, doc_vector[term])
                 dot_product += query_vector[term]*doc_vector[term]
+
+        # print("dot product: ",dot_product)
+        # print("norm_query*norm_doc: ",norm_query*norm_doc)
 
         # print(doc_vector)
 
@@ -359,6 +364,7 @@ class retrieval_function:
         for key in term_fre_doc.keys():
             if key not in doc_vec.keys():
                 doc_vec[key] = term_fre_doc[key]
+        # print("doc_vec: ",doc_vec)
         # calculate weighted vector
         weighted_body_vector:dict = self.calculate_doc_weights(urlid,doc_vec,False)
         body_sim:float = self.calculate_cos_similarity(query_vector,weighted_body_vector)
@@ -366,12 +372,13 @@ class retrieval_function:
 
         #calculate title similarity
         title_vector:dict = self.term_fre_doc(urlid,query,True)
+        # print("title vector: ",title_vector)
         # calculate weighted vector
         weighted_title_vector: dict = self.calculate_doc_weights(urlid,title_vector,True)
-        title_sim:float = self.calculate_cos_similarity(weighted_title_vector,query_vector)
+        title_sim:float = self.calculate_cos_similarity(query_vector,weighted_title_vector)
         # print("title: ",title_sim)
         # print("body: ",body_sim)
-
+        # print("score: ",3*title_sim+body_sim)
         return (3*title_sim+body_sim)
 
     def get_result(self,urlid:str, query:list[str])->resultItem:
@@ -439,10 +446,6 @@ class retrieval_function:
         keywords.sort(key= lambda x : keyword_fre[x],reverse=True)
         return keywords[:5]
 
-
-
-    def selectWord(self,selectedWords:list[str]):
-        return self.get_AllResult("",selectedWords)
 
     def get_AllResult(self,prompt:str,extraword:list[str] = []) :
         results = []
@@ -675,7 +678,10 @@ if __name__ == '__main__':
     # long_str = " ".join(st)
     # print(long_str)
     # id = rf.cur.execute(f"SELECT urlId FROM url2id WHERE url='https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm'").fetchone()[0]
-    # rf.get_result(id,["page"])
+    # rf.get_result(id,["test page"])
+    # rf.get_result(id,["test","page"])
+    # rf.get_result(id,["test"])
+
     # print(rf.N)
     # rf.get_AllResult()
     # print(len(rf.cur.execute("SELECT * FROM CrawledPage").fetchall()))
