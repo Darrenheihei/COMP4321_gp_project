@@ -243,18 +243,29 @@ class retrieval_function:
         return term_fre
 
 
-    def get_doc_vector(self,urlid:str) -> dict:
+    def get_doc_vector(self,urlid:str,title:bool=False) -> dict:
         doc_vector = {}
         if urlid in self.ForwardIndex.keys():
             keywordIds:list[str] = self.ForwardIndex[urlid]
-            for keywordId in keywordIds:
-                if keywordId in self.BodyInvertedIndex.keys():
-                    doc:dict = self.BodyInvertedIndex[keywordId]
-                    if urlid not in doc.keys():
-                        continue
-                    fre:int = self.BodyInvertedIndex[keywordId][urlid]["freq"]
-                    key:str = self.id2keyword[keywordId]
-                    doc_vector[key] = fre
+
+            if title:
+                for keywordId in keywordIds:
+                    if keywordId in self.TitleInvertedIndex.keys():
+                        doc:dict = self.TitleInvertedIndex[keywordId]
+                        if urlid not in doc.keys():
+                            continue
+                        fre:int = self.TitleInvertedIndex[keywordId][urlid]["freq"]
+                        key:str = self.id2keyword[keywordId]
+                        doc_vector[key] = fre
+            else:
+                for keywordId in keywordIds:
+                    if keywordId in self.BodyInvertedIndex.keys():
+                        doc:dict = self.BodyInvertedIndex[keywordId]
+                        if urlid not in doc.keys():
+                            continue
+                        fre:int = self.BodyInvertedIndex[keywordId][urlid]["freq"]
+                        key:str = self.id2keyword[keywordId]
+                        doc_vector[key] = fre
         return doc_vector
 
 
@@ -315,11 +326,13 @@ class retrieval_function:
                 # else:
                 #     print('body')
                 # print(term,weightList[term])
-
+        # print(title,weightList)
         return weightList
 
 
     def calculate_cos_similarity(self,query_vector:dict, doc_vector:dict) -> float:
+        # print("query_vector: ",query_vector)
+        # print("doc_vector: ",doc_vector)
 
         #calculate the norm of query vector
         square_sum_query:float = 0
@@ -371,7 +384,12 @@ class retrieval_function:
 
 
         #calculate title similarity
-        title_vector:dict = self.term_fre_doc(urlid,query,True)
+        # title_vector:dict = self.term_fre_doc(urlid,query,True)
+        title_vector:dict = self.get_doc_vector(urlid,True)  # doc vector without phrase
+        term_fre_doc:dict = self.term_fre_doc(urlid,query,True) # get phrase fre
+        for key in term_fre_doc.keys():
+            if key not in title_vector.keys():
+                title_vector[key] = term_fre_doc[key]
         # print("title vector: ",title_vector)
         # calculate weighted vector
         weighted_title_vector: dict = self.calculate_doc_weights(urlid,title_vector,True)
