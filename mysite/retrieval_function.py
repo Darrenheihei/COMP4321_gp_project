@@ -380,6 +380,7 @@ class retrieval_function:
         if urlid in self.child_pages.keys():
             childLinks= []
             child_links_ids = self.child_pages[urlid]
+            print(self.id2url[urlid], child_links_ids) # TODO: added this print line here, remove after finish debugging
             for id in child_links_ids:
                 childLinks.append(self.id2url[id])
         else:
@@ -460,6 +461,7 @@ class retrieval_function:
 if __name__ == '__main__':
 
     rf = retrieval_function()
+    print(rf.get_AllResult("PG"))
     # item = rf.get_result()
 
     #test prepare
