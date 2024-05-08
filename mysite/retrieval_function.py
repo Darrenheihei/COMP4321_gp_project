@@ -88,7 +88,10 @@ class retrieval_function:
         for ph in phrase:
             words:list[str] = self.ce.splitWords(ph)
             words = self.ss.process(words)
-
+            # add single term in the phrase
+            for word in words:
+                if word in self.keyword2id.keys():
+                    terms.append(word)
             # combine the split terms to phrase
             if self.checkAllWordsHaveId(words):
                 combine:str = ""
@@ -696,7 +699,9 @@ if __name__ == '__main__':
     # long_str = " ".join(st)
     # print(long_str)
     # id = rf.cur.execute(f"SELECT urlId FROM url2id WHERE url='https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm'").fetchone()[0]
-    # rf.get_result(id,["test page"])
+    # results = rf.get_result(id,["test page"])
+    # results = rf.get_AllResult('"test page"')
+    # print(len(results))
     # rf.get_result(id,["test","page"])
     # rf.get_result(id,["test"])
 
