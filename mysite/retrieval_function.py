@@ -320,7 +320,7 @@ class retrieval_function:
                 df = len(doc_fre_pos.keys())
                 # print(term,"df:",df)
                 idf = np.log2(self.N/df)
-                print(term,"idf:",idf)
+                # print(term,"idf:",idf)
                 # print(term,"N:",self.N)
 
                 weightList[term] = term_fre[term] * idf / tf_max
