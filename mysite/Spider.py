@@ -279,6 +279,21 @@ class Spider:
                 if childLinks is None: # do not need to crawl this page
                     continue
 
+                # first remove current page from the parent page list of all the old child pages
+                oldChildLinks: list[str] = self.child_pages.get(curUrlId, [])
+                for link in oldChildLinks:
+                    childUrlId: str = self.url2id.get(link)
+                    # remove the current page from the parent page list
+                    newParentList = self.parent_pages[childUrlId]
+                    newParentList.remove(curUrlId)
+                    self.parent_pages[childUrlId] = newParentList
+
+                # clear the child page list of the current page
+                if oldChildLinks != []:
+                    self.child_pages[curUrlId] = []
+
+
+                # perform operations on each new child link
                 for link in childLinks:
                     # get id of the page
                     childUrlId: str = self.url2id.get(link, None)
@@ -300,10 +315,11 @@ class Spider:
 
                     # check whether set current page as parent URL of the child page
                     if self.addLinkRelation(curUrl, link, cycle_ids, cycle_paths):
-                        # TODO: perform checking with original parent/child links
+                        # print(childUrlId)
                         self.child_pages[curUrlId] = self.child_pages.get(curUrlId, []) + [childUrlId]
                         self.parent_pages[childUrlId] = self.parent_pages.get(childUrlId, []) + [curUrlId]
 
+                    # print(self.child_pages[curUrlId])
                 self.crawled_pages.append((curUrl, curUrlId))
 
                 print("\r", end="")
