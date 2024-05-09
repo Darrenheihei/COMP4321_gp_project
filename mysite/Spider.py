@@ -281,8 +281,7 @@ class Spider:
 
                 # first remove current page from the parent page list of all the old child pages
                 oldChildLinks: list[str] = self.child_pages.get(curUrlId, [])
-                for link in oldChildLinks:
-                    childUrlId: str = self.url2id.get(link)
+                for childUrlId in oldChildLinks:
                     # remove the current page from the parent page list
                     newParentList = self.parent_pages[childUrlId]
                     newParentList.remove(curUrlId)

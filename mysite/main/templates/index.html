@@ -79,11 +79,11 @@
                         <p>{{result.keywords }}</p>
                         <p>Parent links:</p>
                         {% for parentLink in result.parentLinks %}
-                            <p>{{ parentLink }}</p>
+                            <a href="{{ parentLink }}" target="_blank">{{ parentLink }}</a>
                         {% endfor %}
                         <p>Child links:</p>
                         {% for childLink in result.childLinks%}
-                            <p>{{ childLink }}</p>
+                            <a href="{{ childLink }}" target="_blank">{{ childLink }}</a>
                         {% endfor %}
                         <form method="post">
                             {% csrf_token %}
