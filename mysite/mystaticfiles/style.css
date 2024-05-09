@@ -84,6 +84,7 @@ h1 {
 
 .query_history_button:hover{
     background-color:#e66aff6e;
+    cursor:pointer;
 }
 
 .get_similar_button{
