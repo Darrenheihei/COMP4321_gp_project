@@ -13,32 +13,8 @@ from django.shortcuts import redirect
 
 @csrf_protect
 def index(request):
-    class resultItem:
-        def __init__(self, score, title, url, date, size, keywords, parentLinks, childLinks, top5Words):
-            self.score = score
-            self.title = title
-            self.url = url
-            self.date = date
-            self.size = size
-            self.keywords = '; '.join(f"{key} {value}" for key, value in keywords.items())
-            self.top5Words = top5Words
-            if parentLinks != []:
-                self.parentLinks = parentLinks
-            else:
-                self.parentLinks = ["This page has no parent links"]
-
-            if childLinks != []:
-                self.childLinks = childLinks
-            else:
-                self.childLinks = ["This page has no child links"]
-
-    
     submitted = False
-    result1 = resultItem(0, "Test page", "https://www.cse.ust.hk/~kwtleung/COMP4321/testpage.htm" , "1-1-1111", 100, {'a': 10, 'b': 20}, ["parent 1", "parent 2"], ["child 1"],"happy sad excited")
-    result2 = resultItem(0, "CSE department of HKUST", "https://www.cse.ust.hk/~kwtleung/COMP4321/ust_cse.htm", "1-1-1111", 100, {'c': 30, 'd': 40}, [], [],"darren alex sunny kiki amy")
-    results = [result1,result2]
-
-
+    results = []
 
     if request.method == 'GET':
         cookie_id = request.COOKIES.get('user_cookie_id')
@@ -82,7 +58,6 @@ def index(request):
 
                 query_text = user_query_history.request_query
 
-                # TODO: uncomment the line below and call the ranking function
                 rf = retrieval_function()
                 results = rf.get_AllResult(query_text)
 
@@ -120,7 +95,6 @@ def index(request):
 
             query_text = request.POST.get('query', '')
 
-            # TODO: uncomment the line below and call the ranking function
             rf = retrieval_function()
             results = rf.get_AllResult(query_text)
 
