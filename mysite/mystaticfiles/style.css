@@ -74,9 +74,16 @@ h1 {
     background-color: lightcoral; 
 }
 
-.query_history_text{
+.query_history_button{
     padding:10px;
+    margin:15px;
     font-weight: bold;
+    background-color:#e66aff;
+    border:none;
+}
+
+.query_history_button:hover{
+    background-color:#e66aff6e;
 }
 
 .get_similar_button{

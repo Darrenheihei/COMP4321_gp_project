@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="{% static 'style.css' %}">
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const buttons = document.querySelectorAll('.get_similar_button');
+            const buttons = document.querySelectorAll(".get_similar_button, .query_history_button");
             buttons.forEach(button => {
                 button.addEventListener('click', function() {
                     const top5Words = this.getAttribute('data-top5words');
@@ -56,7 +56,10 @@
                 {% if queries %}
                     {% for query in queries %}
                         <div>
-                            <p class="query_history_text">{{ query.query }}</p>
+                            <form method="post">
+                                {% csrf_token %}
+                                <button class="query_history_button" type="button" id="send_button" data-top5words="{{ query }}">{{ query }}</button>
+                            </form>
                         </div>
                     {% endfor %}
                 {% else %}
