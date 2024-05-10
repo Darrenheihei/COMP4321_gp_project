@@ -77,11 +77,11 @@
                         <a href="{{ result.url }}" target="_blank">{{ result.url }}</a>
                         <p>{{ result.date }}, {{ result.size}}</p>
                         <p>{{result.keywords }}</p>
-                        <p>Parent links:</p>
+                        <p>Parent links: (showing at most 10 links)</p>
                         {% for parentLink in result.parentLinks %}
                             <a href="{{ parentLink }}" target="_blank">{{ parentLink }}</a>
                         {% endfor %}
-                        <p>Child links:</p>
+                        <p>Child links: (showing at most 10 links)</p>
                         {% for childLink in result.childLinks%}
                             <a href="{{ childLink }}" target="_blank">{{ childLink }}</a>
                         {% endfor %}
