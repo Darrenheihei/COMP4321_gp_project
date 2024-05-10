@@ -151,7 +151,7 @@ class Spider:
         self.cur.execute("DROP TABLE ParentUrl")
         self.cur.execute("CREATE TABLE ParentUrl(urlId, value)")
         # construct the value into the specified format
-        key_values = ((key, ' '.join(value)) for key, value in self.parent_pages.items())
+        key_values = ((key, ' '.join(value)) for key, value in self.parent_pages.items() if value != [])
         # update the entries inside the table
         self.cur.executemany("INSERT INTO ParentUrl VALUES(?, ?)", key_values)
         self.con.commit()
@@ -161,7 +161,7 @@ class Spider:
         self.cur.execute("DROP TABLE ChildUrl")
         self.cur.execute("CREATE TABLE ChildUrl(urlId, value)")
         # construct the value into the specified format
-        key_values = ((key, ' '.join(value)) for key, value in self.child_pages.items())
+        key_values = ((key, ' '.join(value)) for key, value in self.child_pages.items() if value != [])
         # update the entries inside the table
         self.cur.executemany("INSERT INTO ChildUrl VALUES(?, ?)", key_values)
         self.con.commit()
