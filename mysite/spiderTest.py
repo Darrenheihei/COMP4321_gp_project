@@ -7,6 +7,7 @@ if __name__ == '__main__':
     # print(result)
     print(cur.execute("SELECT * FROM ModDate").fetchall())
     print(cur.execute("SELECT * FROM url2id").fetchall())
+    print(cur.execute("SELECT * FROM keyword2id").fetchall())
 
     # start = time.perf_counter()
     # for _ in range(1000):
