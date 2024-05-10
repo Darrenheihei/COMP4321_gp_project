@@ -14,7 +14,7 @@ Step 6: Host the local server by doing `python3 manage.py runserver`
 
 Step 7: You should now see there is a local link shown in the terminal, e.g. `http://127.0.0.1:8000/`. Click on the link to get to the webpage of the search engine. Then refresh the page.
 
-Step 8: To avoid previous group's cookies are still kept on the webpage, please first press `F12` -> go to `Application` -> right click on the local server link under `Cookies` -> press `Clear`.
+Step 8: To avoid previous group's cookies are still kept on the webpage, please first press `F12` -> on the DevTools page, go to `Application` -> right click on the local server link under `Cookies` -> press `Clear`.
 
 Step 9: You can do the searching by typing in your query in the search bar, get similar pages by pressing the `get similar pages` button, and review previous query by clicking on the target query under `Search History`
 
@@ -38,7 +38,7 @@ Step 6: Host the local server by doing `python manage.py runserver`
 
 Step 7: You should now see there is a local link shown in the terminal, e.g. `http://127.0.0.1:8000/`. Click on the link to get to the webpage of the search engine.
 
-Step 8: To avoid previous group's cookies are still kept on the webpage, please first press `F12` -> go to `Application` -> right click on the local server link under `Cookies` -> press `Clear`. Then refresh the page.
+Step 8: To avoid previous group's cookies are still kept on the webpage, please first press `F12` -> on the DevTools page, go to `Application` -> right click on the local server link under `Cookies` -> press `Clear`. Then refresh the page.
 
 Step 9: You can do the searching by typing in your query in the search bar, get similar pages by pressing the `get similar pages` button, and review previous query by clicking on the target query under `Search History`
 
