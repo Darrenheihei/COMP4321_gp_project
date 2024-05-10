@@ -22,6 +22,8 @@ Step 10: After using the search engine, you can terminate the local server by do
 
 Step 11: Deactivate the virtual environment by typing `deactivate` in the terminal
 
+Note: After page modifications, to update the content in the database, please do Step 5 to Step 9 again.
+
 ## For Windows
 
 Step 1: In the current directory, create a Python virtual environment by any means, e.g. through typing `python -m venv env` in the terminal
@@ -44,4 +46,6 @@ Step 9: You can do the searching by typing in your query in the search bar, get 
 
 Step 10: After using the search engine, you can terminate the local server by doing `CTRL + C` in the terminal.
 
-Step 11: After finish everything, deactivate the virtual environment by typing `deactivate` in the terminal
+Step 11: After finish everything, deactivate the virtual environment by typing `deactivate` in the terminal.
+
+Note: After page modifications, to update the content in the database, please do Step 5 to Step 9 again.
