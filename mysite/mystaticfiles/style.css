@@ -1,6 +1,29 @@
+.test{
+    font-size: 50px;
+}
+
 h1 {
   text-align: center;
 }
+
+.main{
+    background-color: #ffc0cb;
+    padding: 35px;
+}
+
+.button{
+    font-size: 16px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    background-color:#3efbff;
+    border: none;
+}
+
+.button:hover{
+    background-color:#cffeff;
+    cursor:pointer;
+}
+
 
 .searchResultItem {
   border: 3px solid #C0C0C0;
@@ -20,7 +43,7 @@ h1 {
 }
 
 .searchResultItem > a, p {
-    grid-column-start: 2;
+    grid-column-start: 3;
 }
 
 
@@ -31,7 +54,49 @@ h1 {
 
 .searchBar {
     display: block;
-    margin-left: auto;
     width: 500px;
     margin-right: 10px;
+    border: none;
+    border-radius: 10px;
+}
+
+.container{
+    display: flex;
+}
+
+.sidebar {
+    flex: 0 0 20%; 
+    background-color: lightblue; 
+}
+
+.main-content {
+    flex: 0 0 80%; 
+    background-color: lightcoral; 
+}
+
+.query_history_button{
+    padding:10px;
+    margin:15px;
+    font-weight: bold;
+    background-color:#e66aff;
+    border:none;
+}
+
+.query_history_button:hover{
+    background-color:#e66aff6e;
+    cursor:pointer;
+}
+
+.get_similar_button{
+    width: 100px;
+    font-size: 12px;
+    padding: 5px 15px;
+    border-radius: 6px;
+    background-color:#f4ff1b;
+    border: none;
+}
+
+.get_similar_button:hover {
+    background-color: #faffa1;
+    cursor:pointer;
 }

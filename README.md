@@ -6,13 +6,25 @@ Step 2: Activate the virtual environment by typing `source env/bin/activate`
 
 Step 3: Install required packages by typing `pip install -r requirements.txt` in the terminal
 
-Step 4: Run the spider by doing `python3 Spider.py`
+Step 4: Enter the `mysite` directory by typing `cd mysite`
 
-Step 5: Get the output file by doing `python3 testProgram.py`
+Step 5: Run the spider by doing `python3 Spider.py`
 
-Step 6: Now you can read the output from the spider in `spider_result.txt`
+Step 6: Host the local server by doing `python3 manage.py runserver`
 
-Step 7: Deactivate the virtual environment by typing `deactivate` in the terminal
+Step 7: You should now see there is a local link shown in the terminal, e.g. `http://127.0.0.1:8000/`. Click on the link to get to the webpage of the search engine. 
+
+Note: The webpage might show an error before doing Step 8. Following Step 8 should solve that problem. It is due to the existence of cookies from other groups.
+
+Step 8: To avoid previous group's cookies are still kept on the webpage, please first press `F12` -> on the DevTools page, go to `Application` -> right click on the local server link under `Cookies` -> press `Clear`. Then refresh the page.
+
+Step 9: You can do the searching by typing in your query in the search bar, get similar pages by pressing the `get similar pages` button, and review the search result of previous query by clicking on the target query under `Search History`
+
+Step 10: After using the search engine, you can terminate the local server by doing `CONTROL + C` in the terminal.
+
+Step 11: Deactivate the virtual environment by typing `deactivate` in the terminal.
+
+Note: After page modifications, to update the content in the database, please do Step 5 to Step 9 again.
 
 ## For Windows
 
@@ -22,10 +34,22 @@ Step 2: Activate the virtual environment by typing `env\Scripts\activate.bat` in
 
 Step 3: Install required packages by typing `pip install -r requirements.txt` in the terminal
 
-Step 4: Run the spider by doing `python Spider.py`
+Step 4: Enter the `mysite` directory by typing `cd mysite`
 
-Step 5: Get the output file by doing `python testProgram.py`
+Step 5: Run the spider by doing `python Spider.py`
 
-Step 6: Now you can read the output from the spider in `spider_result.txt`
+Step 6: Host the local server by doing `python manage.py runserver`
 
-Step 7: After finish everything, deactivate the virtual environment by typing `deactivate` in the terminal
+Step 7: You should now see there is a local link shown in the terminal, e.g. `http://127.0.0.1:8000/`. Click on the link to get to the webpage of the search engine.
+
+Note: The webpage might show an error before doing Step 8. Following Step 8 should solve that problem. It is due to the existence of cookies from other groups.
+
+Step 8: To avoid previous group's cookies are still kept on the webpage, please first press `F12` -> on the DevTools page, go to `Application` -> right click on the local server link under `Cookies` -> press `Clear`. Then refresh the page.
+
+Step 9: You can do the searching by typing in your query in the search bar, get similar pages by pressing the `get similar pages` button, and review the search result of previous query by clicking on the target query under `Search History`
+
+Step 10: After using the search engine, you can terminate the local server by doing `CTRL + C` in the terminal.
+
+Step 11: After finish everything, deactivate the virtual environment by typing `deactivate` in the terminal.
+
+Note: After page modifications, to update the content in the database, please do Step 5 to Step 9 again.

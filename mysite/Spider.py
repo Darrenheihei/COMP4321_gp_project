@@ -151,7 +151,7 @@ class Spider:
         self.cur.execute("DROP TABLE ParentUrl")
         self.cur.execute("CREATE TABLE ParentUrl(urlId, value)")
         # construct the value into the specified format
-        key_values = ((key, ' '.join(value)) for key, value in self.parent_pages.items())
+        key_values = ((key, ' '.join(value)) for key, value in self.parent_pages.items() if value != [])
         # update the entries inside the table
         self.cur.executemany("INSERT INTO ParentUrl VALUES(?, ?)", key_values)
         self.con.commit()
@@ -161,7 +161,7 @@ class Spider:
         self.cur.execute("DROP TABLE ChildUrl")
         self.cur.execute("CREATE TABLE ChildUrl(urlId, value)")
         # construct the value into the specified format
-        key_values = ((key, ' '.join(value)) for key, value in self.child_pages.items())
+        key_values = ((key, ' '.join(value)) for key, value in self.child_pages.items() if value != [])
         # update the entries inside the table
         self.cur.executemany("INSERT INTO ChildUrl VALUES(?, ?)", key_values)
         self.con.commit()
@@ -279,6 +279,20 @@ class Spider:
                 if childLinks is None: # do not need to crawl this page
                     continue
 
+                # first remove current page from the parent page list of all the old child pages
+                oldChildLinks: list[str] = self.child_pages.get(curUrlId, [])
+                for childUrlId in oldChildLinks:
+                    # remove the current page from the parent page list
+                    newParentList = self.parent_pages[childUrlId]
+                    newParentList.remove(curUrlId)
+                    self.parent_pages[childUrlId] = newParentList
+
+                # clear the child page list of the current page
+                if oldChildLinks != []:
+                    self.child_pages[curUrlId] = []
+
+
+                # perform operations on each new child link
                 for link in childLinks:
                     # get id of the page
                     childUrlId: str = self.url2id.get(link, None)
@@ -300,10 +314,11 @@ class Spider:
 
                     # check whether set current page as parent URL of the child page
                     if self.addLinkRelation(curUrl, link, cycle_ids, cycle_paths):
-                        # TODO: perform checking with original parent/child links
+                        # print(childUrlId)
                         self.child_pages[curUrlId] = self.child_pages.get(curUrlId, []) + [childUrlId]
                         self.parent_pages[childUrlId] = self.parent_pages.get(childUrlId, []) + [curUrlId]
 
+                    # print(self.child_pages[curUrlId])
                 self.crawled_pages.append((curUrl, curUrlId))
 
                 print("\r", end="")

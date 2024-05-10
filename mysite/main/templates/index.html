@@ -3,35 +3,97 @@
 <head>
     <title>COMP4321 G14 Search Engine</title>
     <link rel="stylesheet" href="{% static 'style.css' %}">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll(".get_similar_button, .query_history_button");
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const top5Words = this.getAttribute('data-top5words');
+                    fetch('', {  // with the URL to handle the request
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken(this)
+                        },
+                        body: JSON.stringify({ top5Words: top5Words })
+                    })
+                    .then((response => {
+                        if (response.ok) {
+                            window.location.reload(true);  // reload the page to reflect the changes
+                        } else {
+                            throw new Error('Failed to fetch');
+                        }
+                    }))
+                    .catch(error => console.error('Error:', error));
+                });
+            });
+        
+            function getCsrfToken(element) {
+                // walk up the DOM to find the closest form element and its csrf token
+                return element.closest('form').querySelector('[name=csrfmiddlewaretoken]').value;
+            }
+        });
+    </script>
 </head>
 
-<body>
-    <h1>Search Engine of COMP4321 Group 14</h1>
-    <form method="post" action="" class="searchForm">
+<body class="main">
+    <h1 class="test">Search Engine of COMP4321 Group 14</h1>
+    <!-- <form method="post" action="" class="searchForm">
         {% csrf_token %}
         {{form}}
-        <button type="submit" name="save">Search</button>
+        <button class="button" type="submit" name="save">Search</button>
+    </form>   -->
+    <form action="{% url 'index' %}" method="post" class="searchForm">
+        {% csrf_token %}
+        <input class="searchBar" id="query" name="query" type="text" placeholder="Search..">
+        <input class="button" type="submit" value="OK">
     </form>
+
 <br><br>
-    {% if submitted %}
-        <h1>Search Result</h1>
-        {% for result in results %}
-            <div class="searchResultItem">
-                <p class="score">{{ result.score }}</p>
-                <a href="{{ result.url }}" target="_blank">{{ result.title }}</a>
-                <a href="{{ result.url }}" target="_blank">{{ result.url }}</a>
-                <p>{{ result.date }}, {{ result.size}}</p>
-                <p>{{result.keywords }}</p>
-                <p>Parent links:</p>
-                {% for parentLink in result.parentLinks %}
-                    <p>{{ parentLink }}</p>
+    <div class="container">
+        <div class="sidebar">
+            <h1>Search History</h1>
+                {% if queries %}
+                    {% for query in queries %}
+                        <div>
+                            <form method="post">
+                                {% csrf_token %}
+                                <button class="query_history_button" type="button" id="send_button" data-top5words="{{ query }}">{{ query }}</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No queries yet.</p>
+                {% endif %}
+        </div>
+
+        <div class="main-content">
+            {% if submitted %}
+                <h1>Search Result</h1>
+                {% for result in results %}
+                    <div class="searchResultItem">
+                        <p class="score">{{ result.score }}</p>
+                        <a href="{{ result.url }}" target="_blank">{{ result.title }}</a>
+                        <a href="{{ result.url }}" target="_blank">{{ result.url }}</a>
+                        <p>{{ result.date }}, {{ result.size}}</p>
+                        <p>{{result.keywords }}</p>
+                        <p>Parent links: (showing at most 10 links)</p>
+                        {% for parentLink in result.parentLinks %}
+                            <a href="{{ parentLink }}" target="_blank">{{ parentLink }}</a>
+                        {% endfor %}
+                        <p>Child links: (showing at most 10 links)</p>
+                        {% for childLink in result.childLinks%}
+                            <a href="{{ childLink }}" target="_blank">{{ childLink }}</a>
+                        {% endfor %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <button class="get_similar_button" type="button" id="send_button" data-top5words="{{ result.top5Words }}">Get similar pages!</button>
+                        </form>
+                    </div>
                 {% endfor %}
-                <p>Child links:</p>
-                {% for childLink in result.childLinks%}
-                    <p>{{ childLink }}</p>
-                {% endfor %}
-            </div>
-        {% endfor %}
-    {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    
 </body>
 </html>
